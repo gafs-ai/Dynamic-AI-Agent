@@ -181,4 +181,4 @@ cython_debug/
 .cursorindexingignore
 
 # Secret test configuration files (must not be committed)
-secret_test_config_*.json
+secret_test_*.json
