@@ -44,7 +44,6 @@ __all__ = [
     "ModelDeployment",
     "ModelStatus",
     "AiOperationType",
-    "ModelDeployment",
     # model_catalogue_service
     "HnswSearchMethod",
     "LogicalOperator",

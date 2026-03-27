@@ -2,7 +2,8 @@ from __future__ import annotations
 
 import logging
 from typing import Any, override
-
+from gafs.dynamicaiagent.common.models.attribute_definition import AttributeDefinition
+from gafs.dynamicaiagent.common.models.attribute_type import AttributeType
 from gafs.dynamicaiagent.common.databasemanager import IDatabaseManager
 from gafs.dynamicaiagent.common.secretmanager.secret import Secret
 from gafs.dynamicaiagent.utils.databaseprovider import IDatabaseProvider
@@ -14,12 +15,7 @@ from .models.ai_deployment_type import AiDeploymentType
 from .models.ai_request import AiRequest
 from .models.ai_response import AiResponse
 from .models.deployment_selection_options import DeploymentSelectionOptions
-from .models.model_catalogue import (
-    AvailableInferenceParameters,
-    ModelCatalogue,
-    ModelDeployment,
-    ParameterType,
-)
+from .models.model_catalogue import ModelCatalogue, ModelDeployment
 
 
 class ModelService(IModelService):
@@ -91,10 +87,10 @@ class ModelService(IModelService):
             request.parameters if isinstance(request.parameters, dict) else {}
         )
 
-        available_defs_by_key: dict[str, AvailableInferenceParameters] = {}
+        available_defs_by_key: dict[str, AttributeDefinition] = {}
         if isinstance(catalogue.available_inference_parameters, list):
             for item in catalogue.available_inference_parameters:
-                if isinstance(item, AvailableInferenceParameters) and isinstance(
+                if isinstance(item, AttributeDefinition) and isinstance(
                     item.key, str
                 ):
                     available_defs_by_key[item.key] = item
@@ -116,19 +112,19 @@ class ModelService(IModelService):
 
     @staticmethod
     def _validate_parameter_value(
-        parameter_def: AvailableInferenceParameters, value: Any
+        parameter_def: AttributeDefinition, value: Any
     ) -> Any:
-        if parameter_def.type == ParameterType.STR:
+        if parameter_def.type == AttributeType.STR:
             if not isinstance(value, str):
                 raise ValueError(f"Parameter '{parameter_def.key}' must be str.")
-        elif parameter_def.type == ParameterType.INT:
+        elif parameter_def.type == AttributeType.INT:
             if not isinstance(value, int):
                 raise ValueError(f"Parameter '{parameter_def.key}' must be int.")
-        elif parameter_def.type == ParameterType.FLOAT:
+        elif parameter_def.type == AttributeType.FLOAT:
             if not isinstance(value, (int, float)):
                 raise ValueError(f"Parameter '{parameter_def.key}' must be float.")
             value = float(value)
-        elif parameter_def.type == ParameterType.BOOL:
+        elif parameter_def.type == AttributeType.BOOL:
             if not isinstance(value, bool):
                 raise ValueError(f"Parameter '{parameter_def.key}' must be bool.")
 

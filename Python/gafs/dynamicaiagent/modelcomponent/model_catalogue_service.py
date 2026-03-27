@@ -25,13 +25,7 @@ from gafs.dynamicaiagent.utils.databaseprovider import IDatabaseProvider, Surrea
 from .i_model_catalogue_service import IModelCatalogueService
 from .models.model_catalogue import ModelCatalogue, ModelCatalogueSearchResultEntry,ModelDeployment
 from .models.model_component_configurations import ModelComponentConfigurations
-from .models.hnsw_search_method import HnswSearchMethod
-from .models.model_catalogue_search_criteria import (
-    LogicalOperator,
-    ModelCatalogueSearchCriteria,
-    TagsSearchCriteria,
-    VectorSearchCriteria,
-)
+from .models.model_catalogue_search_criteria import ModelCatalogueSearchCriteria
 from .models.model_deployment_search_criteria import ModelDeploymentSearchCriteria
 from .models.ai_connection_parameters import AiConnectionParameters
 from .models.ai_operation_type import AiOperationType
