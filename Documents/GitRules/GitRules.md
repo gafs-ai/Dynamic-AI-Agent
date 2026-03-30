@@ -57,3 +57,50 @@ The development workflow for patches follows the same basic steps as **Developme
 1. For a bug fix on an existing release, create a branch `fix/{MAJOR.MINOR.PATCH}/main` from `main` or from the corresponding `release/{MAJOR.MINOR.PATCH}`.
 2. If multiple components need fixes in parallel, create `fix/{MAJOR.MINOR.PATCH}/{component-name}` branches from `fix/{MAJOR.MINOR.PATCH}/main`.
 3. After development and testing on fix branches, merge them back into `fix/{MAJOR.MINOR.PATCH}/main`, then into `main`, and also into the relevant `dev/{MAJOR.MINOR}/main` branch so that future versions include the same fix.
+
+## 4. Pull Request and Merge Strategy
+
+1. All merges to `dev/{MAJOR.MINOR}/main`, `fix/{MAJOR.MINOR.PATCH}/main`, and `main` must be done by pull request.
+2. Recommended merge method:
+  - Component branch to `dev/{MAJOR.MINOR}/main`: **Squash and merge** (keeps history compact and easy to read).
+  - `dev/{MAJOR.MINOR}/main` or `fix/{MAJOR.MINOR.PATCH}/main` to `main`: **Create a merge commit** (`--no-ff`) to preserve release context.
+3. Direct commits to `main` are not allowed except for emergency hotfix handling approved by the Lead Engineer.
+4. Force push is not allowed on `main`.
+
+## 5. Versioning and Release Tags
+
+1. The release version format is `MAJOR.MINOR.PATCH`.
+2. For a new release, update the project version in the release pull request from `dev/{MAJOR.MINOR}/main` to `main`.
+3. For a patch release, update the project version in the release pull request from `fix/{MAJOR.MINOR.PATCH}/main` to `main`.
+4. After merging to `main`, create an annotated tag using format `{MAJOR.MINOR.PATCH}` on the merge commit.
+5. Then create `release/{MAJOR.MINOR.PATCH}` from `main` to record the exact released source state.
+
+## 6. Integration Testing Gate
+
+1. Before merging `dev/{MAJOR.MINOR}/main` into `main`, all required integration and automated tests must pass.
+2. The Lead Engineer (or delegated reviewer) confirms the release candidate is stable before approving the merge to `main`.
+3. If tests fail, fix issues on the corresponding development branch, rerun tests, and re-approve before merge.
+
+## 7. Commit Message Format
+
+Use a simple commit message format:
+
+1. Required format: `<type>: <short summary>`
+2. Optional issue reference (only if available): `<type>: <short summary> (#<issue-number>)`
+3. Keep the summary short and clear (recommended: within 72 characters).
+
+Allowed `type` values:
+
+- `feat`: New feature
+- `fix`: Bug fix
+- `refactor`: Internal code change without behavior change
+- `docs`: Documentation-only change
+- `test`: Test-related change
+- `chore`: Tooling, build, dependency, or maintenance change
+
+Examples:
+
+- `docs: clarify dataclass and option class rules`
+- `fix: prevent patch branch merge regression`
+- `feat: add model provider fallback`
+- `docs: update git workflow and release tag rules (#42)`
