@@ -294,11 +294,15 @@ For detailed data class implementation guidelines, see [DataClassCodingRulesPyth
 
 - File Name: `{component_name}_options.py` (snake_case)
 - Class Name: `{ComponentName}Options` (PascalCase)
-- Serialization / Deserialization: Follow the same rules as defined in the Data Class section above.
-    - Use `dataclasses` and `dataclasses-json` libraries whenever possible.
-    - Use `@dataclass_json(LetterCase.CAMEL)` to convert between Python snake_case attributes and JSON CamelCase keys.
-    - Use `schema().load()` or `schema().loads()` for reading operations with validation when data integrity is important.
-- Methods: If the data option is expected to be saved in a DB or saved as a file, implement the required methods that are defined in the Data Class section above.
+- Decorator Policy:
+    - `@dataclass` from `dataclasses` is allowed **only** for simple internal configuration containers.
+    - `@dataclass_json` from `dataclasses_json` is **prohibited**.
+- Serialization / Deserialization:
+    - Do not use automatic JSON-to-object conversion decorators.
+    - If options are loaded from external inputs (file, API, environment variables, or user input), implement explicit validation logic (for example, a `from_dict()` method) and reject invalid or unknown fields.
+    - If data integrity is important, validate input data before creating the option object.
+- Methods:
+    - If the option class is expected to be persisted to a database or file as a domain entity, follow the **Data Class** rules in full (manual serialization/deserialization and custom validation logic; no `@dataclass`).
 
 
 ### Repository Class
