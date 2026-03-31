@@ -16,7 +16,7 @@ from gafs.dynamicaiagent.common.databasemanager.exceptions.database_manager_exce
     DatabaseManagerNotInitializedException,
 )
 from gafs.dynamicaiagent.common.databasemanager.i_database_manager import IDatabaseManager
-from gafs.dynamicaiagent.utils.databaseprovider import DatabaseProviderType, DatabaseType
+from gafs.dynamicaiagent.utils.databaseprovider import DatabaseProviderType
 from gafs.dynamicaiagent.utils.databaseprovider.surrealdb_remote_provider import (
     RemoteSurrealDbOptions,
 )
@@ -93,7 +93,7 @@ def _make_remote_options(database_name: str) -> RemoteSurrealDbOptions:
     options.database = "db"
     options.username = "user"
     options.password = "pass"
-    options.database_type = DatabaseType.SURREALDB_REMOTE
+    options.database_type = DatabaseProviderType.SURREALDB_REMOTE
     options.database_name = database_name
     return options
 
@@ -158,8 +158,11 @@ async def test_add_provider_internal_unsupported_type_raises(
     """_add_provider raises DatabaseManagerConfigurationException for unknown type."""
     manager = DatabaseManager(logger)
     options = _make_remote_options("bad-type-db")
-    # Inject an unknown DatabaseType to produce a ConfigurationException from _add_provider.
-    object.__setattr__(options, "database_type", DatabaseType.SURREALDB_SUBPROCESS)
+    # Inject a sentinel that does not match any DatabaseProviderType enum member so
+    # the match statement falls through to the default case.
+    class _FakeType:
+        value = "unsupported_fake_type"
+    object.__setattr__(options, "database_type", _FakeType())
 
     with pytest.raises(DatabaseManagerConfigurationException):
         await manager._add_provider(options, "bad-id")
@@ -474,5 +477,127 @@ async def test_initialize_default_connection_databases_entry_exists(
         entry = await manager.get_connection(IDatabaseManager.DEFAULT_DATABASE_NAME())
         assert entry is not None
         assert entry.name == IDatabaseManager.DEFAULT_DATABASE_NAME()
+    finally:
+        await manager._remove_provider(IDatabaseManager.DEFAULT_DATABASE_NAME())
+
+
+# ---------------------------------------------------------------------------
+# Integration tests – local (embedded) SurrealDB
+# ---------------------------------------------------------------------------
+
+_LOCAL_CONFIG_PATH = (
+    Path(__file__).parent / "secret_test_config_default_database_configurations_local.json"
+)
+
+
+def _load_local_config() -> DatabaseConnection:
+    """Load DatabaseConnection from the local (embedded) integration test config."""
+    with open(_LOCAL_CONFIG_PATH, encoding="utf-8") as fh:
+        data = json.load(fh)
+    return DatabaseConnection.from_dict(data)
+
+
+@pytest.mark.skipif(
+    not _LOCAL_CONFIG_PATH.exists(),
+    reason="Local integration config not found; skipping local-DB tests.",
+)
+@pytest.mark.asyncio
+async def test_initialize_default_connection_local_real(
+    logger: logging.Logger,
+) -> None:
+    """Integration: initialize_default_connection works with local (embedded) SurrealDB."""
+    config = _load_local_config()
+    manager = DatabaseManager(logger)
+    try:
+        await manager.initialize_default_connection(config)
+        provider = manager.get_default_provider()
+        raw = await provider.query_raw("INFO FOR DB")
+        assert raw is not None
+    finally:
+        await manager._remove_provider(IDatabaseManager.DEFAULT_DATABASE_NAME())
+
+
+@pytest.mark.skipif(
+    not _LOCAL_CONFIG_PATH.exists(),
+    reason="Local integration config not found; skipping local-DB tests.",
+)
+@pytest.mark.asyncio
+async def test_initialize_default_connection_local_databases_entry_exists(
+    logger: logging.Logger,
+) -> None:
+    """Integration: after local init, the 'default' entry exists in the databases collection."""
+    config = _load_local_config()
+    manager = DatabaseManager(logger)
+    try:
+        await manager.initialize_default_connection(config)
+        entry = await manager.get_connection(IDatabaseManager.DEFAULT_DATABASE_NAME())
+        assert entry is not None
+        assert entry.name == IDatabaseManager.DEFAULT_DATABASE_NAME()
+    finally:
+        await manager._remove_provider(IDatabaseManager.DEFAULT_DATABASE_NAME())
+
+
+@pytest.mark.skipif(
+    not _LOCAL_CONFIG_PATH.exists(),
+    reason="Local integration config not found; skipping local-DB tests.",
+)
+@pytest.mark.asyncio
+async def test_local_add_and_get_connection(
+    logger: logging.Logger,
+) -> None:
+    """Integration: add_connection and get_connection work with embedded SurrealDB."""
+    config = _load_local_config()
+    manager = DatabaseManager(logger)
+    sm = DummySecretManager()
+    try:
+        await manager.initialize_default_connection(config)
+        await manager.initialize(sm)  # type: ignore[arg-type]
+
+        conn = DatabaseConnection()
+        conn.name = "local-test-conn"
+        conn.description = "Integration test connection"
+        conn.database_type = DatabaseProviderType.SURREALDB_LOCAL
+
+        created = await manager.add_connection(conn)
+        assert created is not None
+        assert created.id is not None
+        assert created.name == "local-test-conn"
+
+        fetched = await manager.get_connection(created.id)
+        assert fetched is not None
+        assert fetched.name == "local-test-conn"
+
+        # Cleanup
+        await manager.delete_connection(created.id)
+    finally:
+        await manager._remove_provider(IDatabaseManager.DEFAULT_DATABASE_NAME())
+
+
+@pytest.mark.skipif(
+    not _LOCAL_CONFIG_PATH.exists(),
+    reason="Local integration config not found; skipping local-DB tests.",
+)
+@pytest.mark.asyncio
+async def test_local_query_raw_via_provider(
+    logger: logging.Logger,
+) -> None:
+    """Integration: query_raw works through the default local provider."""
+    config = _load_local_config()
+    manager = DatabaseManager(logger)
+    try:
+        await manager.initialize_default_connection(config)
+        provider = manager.get_default_provider()
+
+        await provider.query_raw(
+            "CREATE TestRecord:local_mgr_001 SET name = 'Local Manager Test'"
+        )
+        result = await provider.query_raw(
+            "SELECT * FROM TestRecord:local_mgr_001"
+        )
+        assert result is not None
+        if isinstance(result, list):
+            assert len(result) >= 1
+
+        await provider.query_raw("DELETE TestRecord:local_mgr_001")
     finally:
         await manager._remove_provider(IDatabaseManager.DEFAULT_DATABASE_NAME())

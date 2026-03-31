@@ -7,12 +7,11 @@ from typing import TYPE_CHECKING, cast, override
 from gafs.dynamicaiagent.utils.databaseprovider import (
     DatabaseProviderOptions,
     DatabaseProviderType,
-    DatabaseType,
     IDatabaseProvider,
     SurrealDbRemoteProvider,
-)
-from gafs.dynamicaiagent.utils.databaseprovider.surrealdb_remote_provider import (
     RemoteSurrealDbOptions,
+    SurrealDbLocalProvider,
+    LocalSurrealDbOptions
 )
 
 from .database_connection import DatabaseConnection
@@ -106,10 +105,22 @@ class DatabaseManager(IDatabaseManager):
         provider: IDatabaseProvider
 
         match options.database_type:
-            case DatabaseType.SURREALDB_REMOTE:
+            case DatabaseProviderType.SURREALDB_REMOTE:
                 try:
                     provider = SurrealDbRemoteProvider(self._logger)
                     await provider.initialize(cast(RemoteSurrealDbOptions, options))
+                except DatabaseManagerException:
+                    raise
+                except Exception as ex:
+                    raise DatabaseManagerProviderInitializationException(
+                        message="Failed to initialize database provider.",
+                        details={"database_type": options.database_type.value},
+                        cause=ex,
+                    ) from ex
+            case DatabaseProviderType.SURREALDB_LOCAL:
+                try:
+                    provider = SurrealDbLocalProvider(self._logger)
+                    await provider.initialize(cast(LocalSurrealDbOptions, options))
                 except DatabaseManagerException:
                     raise
                 except Exception as ex:
@@ -208,9 +219,17 @@ class DatabaseManager(IDatabaseManager):
                 for key, value in conn_params.items():
                     if hasattr(options, key) and value is not None:
                         setattr(options, key, value)
-                options.database_type = DatabaseType.SURREALDB_REMOTE
+                options.database_type = DatabaseProviderType.SURREALDB_REMOTE
                 options.database_name = connection.id
                 return options
+            case DatabaseProviderType.SURREALDB_LOCAL:
+                local_options = LocalSurrealDbOptions()
+                for key, value in conn_params.items():
+                    if hasattr(local_options, key) and value is not None:
+                        setattr(local_options, key, value)
+                local_options.database_type = DatabaseProviderType.SURREALDB_LOCAL
+                local_options.database_name = connection.id
+                return local_options
             case _:
                 raise DatabaseManagerConfigurationException(
                     message=f"Unsupported database type: {connection.database_type}",
@@ -257,7 +276,14 @@ class DatabaseManager(IDatabaseManager):
                 for key, value in conn_params.items():
                     if hasattr(options, key) and value is not None:
                         setattr(options, key, value)
-                options.database_type = DatabaseType.SURREALDB_REMOTE
+                options.database_type = DatabaseProviderType.SURREALDB_REMOTE
+                options.database_name = self.DEFAULT_DATABASE_NAME()
+            case DatabaseProviderType.SURREALDB_LOCAL:
+                options = LocalSurrealDbOptions()
+                for key, value in conn_params.items():
+                    if hasattr(options, key) and value is not None:
+                        setattr(options, key, value)
+                options.database_type = DatabaseProviderType.SURREALDB_LOCAL
                 options.database_name = self.DEFAULT_DATABASE_NAME()
             case _:
                 raise DatabaseManagerConfigurationException(

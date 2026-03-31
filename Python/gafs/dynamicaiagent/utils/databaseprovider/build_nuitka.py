@@ -89,6 +89,7 @@ def main() -> int:
     print()
     print("To verify the compiled module with existing tests:")
     print("  pytest gafs/dynamicaiagent/utils/databaseprovider/test/test_build_surrealdb_remote_provider.py -v")
+    print("  pytest gafs/dynamicaiagent/utils/databaseprovider/test/test_build_surrealdb_local_provider.py -v")
     print()
     print("To use the compiled module from other code, run Python from the Python/ directory and")
     print("ensure `gafs.dynamicaiagent.utils.__path__` prefers build/<arch>/.../utils before importing")

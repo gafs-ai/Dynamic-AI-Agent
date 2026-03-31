@@ -2,6 +2,8 @@ from typing import Any
 from . import DatabaseProviderException
 
 class DatabaseProviderInitializationException(DatabaseProviderException):
+    """Exception raised when the database provider fails to initialize."""
+
     ERROR_NAME: str = "DatabaseProviderInitializationException"
     DEFAULT_MESSAGE: str = "Failed to initialize Database Provider."
 

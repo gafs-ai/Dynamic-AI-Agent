@@ -2,6 +2,8 @@ from typing import Any
 from . import DatabaseProviderException
 
 class DatabaseOperationException(DatabaseProviderException):
+    """Base exception for errors that occur during database query or operation execution."""
+
     ERROR_NAME: str = "DatabaseOperationException"
     DEFAULT_MESSAGE: str = "Failed to execute Database Operation."
 

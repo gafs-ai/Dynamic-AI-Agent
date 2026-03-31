@@ -27,8 +27,8 @@ from gafs.dynamicaiagent.utils.databaseprovider.surrealdb_remote_provider import
     SurrealDbRemoteProvider,
     RemoteSurrealDbOptions,
 )
-from gafs.dynamicaiagent.utils.databaseprovider.i_database_provider import (  # noqa: E402
-    DatabaseType,
+from gafs.dynamicaiagent.utils.databaseprovider.database_provider_type import (  # noqa: E402
+    DatabaseProviderType,
 )
 from gafs.dynamicaiagent.utils.databaseprovider.exceptions.database_provider_initialization_exception import (  # noqa: E402,E501
     DatabaseProviderUnconnectableException,
@@ -65,7 +65,7 @@ def logger() -> logging.Logger:
 @pytest.fixture(scope="module")
 def config() -> dict[str, Any]:
     """Load test configuration from JSON file."""
-    config_path = Path(__file__).parent / "secret_test_config_0.json"
+    config_path = Path(__file__).parent / "secret_test_config_surrealdb_remote.json"
     
     with config_path.open("r", encoding="utf-8") as f:
         return json.load(f)
@@ -75,13 +75,15 @@ def config() -> dict[str, Any]:
 def valid_options(config: dict[str, Any]) -> RemoteSurrealDbOptions:
     """Create valid RemoteSurrealDbOptions from config."""
     options = RemoteSurrealDbOptions()
-    options.database_type = DatabaseType.SURREALDB_REMOTE
+    options.database_type = DatabaseProviderType.SURREALDB_REMOTE
     options.database_name = config["database"]
     options.endpoint = config["endpoint"]
     options.namespace = config["namespace"]
     options.database = config["database"]
     options.username = config["username"]
     options.password = config["password"]
+    if "auth_level" in config:
+        options.auth_level = config["auth_level"]
     return options
 
 
@@ -89,13 +91,15 @@ def valid_options(config: dict[str, Any]) -> RemoteSurrealDbOptions:
 def invalid_endpoint_options(config: dict[str, Any]) -> RemoteSurrealDbOptions:
     """Create RemoteSurrealDbOptions with invalid endpoint."""
     options = RemoteSurrealDbOptions()
-    options.database_type = DatabaseType.SURREALDB_REMOTE
+    options.database_type = DatabaseProviderType.SURREALDB_REMOTE
     options.database_name = config["database"]
     options.endpoint = "wss://invalid-endpoint-for-testing.invalid/rpc"
     options.namespace = config["namespace"]
     options.database = config["database"]
     options.username = config["username"]
     options.password = config["password"]
+    if "auth_level" in config:
+        options.auth_level = config["auth_level"]
     return options
 
 
@@ -103,13 +107,15 @@ def invalid_endpoint_options(config: dict[str, Any]) -> RemoteSurrealDbOptions:
 def invalid_credentials_options(config: dict[str, Any]) -> RemoteSurrealDbOptions:
     """Create RemoteSurrealDbOptions with invalid credentials."""
     options = RemoteSurrealDbOptions()
-    options.database_type = DatabaseType.SURREALDB_REMOTE
+    options.database_type = DatabaseProviderType.SURREALDB_REMOTE
     options.database_name = config["database"]
     options.endpoint = config["endpoint"]
     options.namespace = config["namespace"]
     options.database = config["database"]
     options.username = config["username"]
     options.password = "invalid-password-for-testing"
+    if "auth_level" in config:
+        options.auth_level = config["auth_level"]
     return options
 
 
@@ -120,13 +126,15 @@ async def setup_test_database(
 ) -> None:
     """Setup test database with TestRecord data and cleanup after tests."""
     options = RemoteSurrealDbOptions()
-    options.database_type = DatabaseType.SURREALDB_REMOTE
+    options.database_type = DatabaseProviderType.SURREALDB_REMOTE
     options.database_name = config["database"]
     options.endpoint = config["endpoint"]
     options.namespace = config["namespace"]
     options.database = config["database"]
     options.username = config["username"]
     options.password = config["password"]
+    if "auth_level" in config:
+        options.auth_level = config["auth_level"]
 
     provider = SurrealDbRemoteProvider(logger)
     await provider.initialize(options)
@@ -372,7 +380,7 @@ async def test_options_serialization(valid_options: RemoteSurrealDbOptions) -> N
     assert "endpoint" in options_dict
     assert "namespace" in options_dict
     assert "database" in options_dict
-    assert options_dict["database_type"] == "surrealdb-remote"
+    assert options_dict["database_type"] == "surrealdb_remote"
     
     # Test to_json
     json_str = valid_options.to_json()
@@ -385,14 +393,14 @@ async def test_options_serialization(valid_options: RemoteSurrealDbOptions) -> N
     assert reconstructed_from_dict.endpoint == valid_options.endpoint
     assert reconstructed_from_dict.namespace == valid_options.namespace
     assert reconstructed_from_dict.database == valid_options.database
-    assert reconstructed_from_dict.database_type == DatabaseType.SURREALDB_REMOTE
+    assert reconstructed_from_dict.database_type == DatabaseProviderType.SURREALDB_REMOTE
     
     # Test from_json
     reconstructed_from_json = RemoteSurrealDbOptions.from_json(json_str)
     assert reconstructed_from_json.endpoint == valid_options.endpoint
     assert reconstructed_from_json.namespace == valid_options.namespace
     assert reconstructed_from_json.database == valid_options.database
-    assert reconstructed_from_json.database_type == DatabaseType.SURREALDB_REMOTE
+    assert reconstructed_from_json.database_type == DatabaseProviderType.SURREALDB_REMOTE
 
 
 @pytest.mark.asyncio

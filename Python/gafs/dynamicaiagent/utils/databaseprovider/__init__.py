@@ -7,15 +7,17 @@ from .exceptions.
 from __future__ import annotations
 
 from .database_provider_type import DatabaseProviderType
-from .i_database_provider import (
-    IDatabaseProvider,
-    DatabaseProviderStatus,
-    DatabaseProviderOptions,
-    DatabaseType,
-)
+from .database_provider_status import DatabaseProviderStatus
+from .database_provider_options import DatabaseProviderOptions
+from .i_database_provider import IDatabaseProvider
 from .surrealdb_remote_provider import (
     SurrealDbRemoteProvider,
     RemoteSurrealDbOptions,
+)
+from .surrealdb_local_provider import (
+    SurrealDbLocalProvider,
+    LocalSurrealDbOptions,
+    LocalSurrealDbStorageType,
 )
 from .exceptions import (
     DatabaseProviderException,
@@ -32,10 +34,12 @@ __all__ = [
     "IDatabaseProvider",
     "DatabaseProviderStatus",
     "DatabaseProviderOptions",
-    "DatabaseType",
     "DatabaseProviderType",
     "SurrealDbRemoteProvider",
     "RemoteSurrealDbOptions",
+    "SurrealDbLocalProvider",
+    "LocalSurrealDbOptions",
+    "LocalSurrealDbStorageType",
     "DatabaseProviderException",
     "DatabaseProviderInitializationException",
     "DatabaseProviderUnconnectableException",
@@ -45,3 +49,4 @@ __all__ = [
     "DatabaseQueryErrorException",
     "EmbeddedDatabaseException",
 ]
+
