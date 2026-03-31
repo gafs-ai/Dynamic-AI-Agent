@@ -7,6 +7,8 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 
+from Python.gafs.dynamicaiagent.modelcomponent.models.model_catalogue_search_criteria import ModelCatalogueSearchCriteria
+from Python.gafs.dynamicaiagent.modelcomponent.models.model_deployment_search_criteria import ModelDeploymentSearchCriteria
 from gafs.dynamicaiagent.modelcomponent.models.model_catalogue import ModelCatalogue, ModelDeployment
 from gafs.dynamicaiagent.modelcomponent.models.model_component_configurations import ModelComponentConfigurations
 from gafs.dynamicaiagent.common.databasemanager import IDatabaseManager
@@ -109,7 +111,7 @@ class IModelCatalogueService(ABC):
 
     @abstractmethod
     async def search_catalogues(
-        self, catalogue_search_criteria: object
+        self, catalogue_search_criteria: ModelCatalogueSearchCriteria
     ) -> list[ModelCatalogue]:
         """Search model catalogues by criteria.
 
@@ -158,7 +160,7 @@ class IModelCatalogueService(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    async def search_deployments(self, deployment_search_criteria: object) -> list[ModelDeployment]:
+    async def search_deployments(self, deployment_search_criteria: ModelDeploymentSearchCriteria) -> list[ModelDeployment]:
         """Search model deployments by criteria."""
         raise NotImplementedError
 
