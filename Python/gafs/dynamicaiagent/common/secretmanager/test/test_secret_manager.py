@@ -29,7 +29,7 @@ from gafs.dynamicaiagent.common.secretmanager.i_secret_manager import (
 from gafs.dynamicaiagent.common.secretmanager.secret import Secret
 from gafs.dynamicaiagent.common.secretmanager.secret_manager import SecretManager
 from gafs.dynamicaiagent.utils.databaseprovider import (
-    DatabaseType,
+    DatabaseProviderType,
     RemoteSurrealDbOptions,
     SurrealDbRemoteProvider,
 )
@@ -86,7 +86,7 @@ def db_options(config: dict) -> RemoteSurrealDbOptions:
     options.database = config["database"]
     options.username = config["username"]
     options.password = config["password"]
-    options.database_type = DatabaseType.SURREALDB_REMOTE
+    options.database_type = DatabaseProviderType.SURREALDB_REMOTE
     options.database_name = IDatabaseManager.DEFAULT_DATABASE_NAME()
     return options
 

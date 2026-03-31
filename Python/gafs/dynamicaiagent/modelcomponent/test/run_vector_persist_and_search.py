@@ -35,7 +35,7 @@ from gafs.dynamicaiagent.modelcomponent.models.ai_operation_type import AiOperat
 from gafs.dynamicaiagent.modelcomponent.models.model_component_configurations import (
     ModelComponentConfigurations,
 )
-from gafs.dynamicaiagent.utils.databaseprovider import DatabaseType
+from gafs.dynamicaiagent.utils.databaseprovider import DatabaseProviderType
 from gafs.dynamicaiagent.utils.databaseprovider.surrealdb_remote_provider import RemoteSurrealDbOptions
 
 
@@ -76,7 +76,7 @@ def _build_options(config: dict[str, Any]) -> RemoteSurrealDbOptions:
     options.database = config["database"]
     options.username = config["username"]
     options.password = config["password"]
-    options.database_type = DatabaseType.SURREALDB_REMOTE
+    options.database_type = DatabaseProviderType.SURREALDB_REMOTE
     options.database_name = IDatabaseManager.DEFAULT_DATABASE_NAME()
     return options
 
