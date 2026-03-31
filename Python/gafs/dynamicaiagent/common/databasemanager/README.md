@@ -1,115 +1,149 @@
 ## Overview
 
 `databasemanager` is the **database manager** component used within Dynamic AI Agent.  
-It provides the `IDatabaseManager` interface and its implementation `DatabaseManager`,  
-which centrally manages multiple `IDatabaseProvider` implementations (for example, `SurrealDbRemoteProvider`).
+It provides the `IDatabaseManager` interface and its concrete implementation `DatabaseManager`,  
+which manages both **database provider instances** (`IDatabaseProvider`) and **connection
+configuration entries** (`DatabaseConnection`) stored in the default database's `databases`
+collection.
+
+---
 
 ### Structure
 
-- `__init__.py`
-  - Exposes the public API of the `databasemanager` component.
-  - Re-exports `IDatabaseManager` / `DatabaseManager`.
-- `i_database_manager.py`
-  - Defines the `IDatabaseManager` interface.
-    - `DEFAULT_DATABASE_NAME() -> str`
-      - Returns the default database name (`"default"`).
-    - `async add_provider(options: DatabaseProviderOptions, overwrite: bool = False) -> bool`
-    - `get_provider(database_name: str) -> IDatabaseProvider | None`
-    - `get_default_database_provider() -> IDatabaseProvider | None`
-    - `async remove_provider(database_name: str) -> bool`
-- `database_manager.py`
-  - Provides the `DatabaseManager` implementation of `IDatabaseManager`.
-  - Internally keeps a `dict[str, IDatabaseProvider]` and uses `database_name` as the key
-    to register, fetch, and remove `IDatabaseProvider` instances.
-  - Keeps the provider corresponding to the default database name
-    (`IDatabaseManager.DEFAULT_DATABASE_NAME()`) as the **default provider**.
-- `test/`
-  - Provides `pytest`‑based unit tests (see `test/README.md` for details).
-  - Does not connect to a real database; it uses `IDatabaseProvider` test doubles
-    to verify the behavior of `DatabaseManager`.
+```
+databasemanager/
+├── __init__.py                          – Public API re-exports
+├── database_connection.py               – DatabaseConnection data class
+├── i_database_manager.py               – IDatabaseManager interface
+├── database_manager.py                 – DatabaseManager implementation
+├── exceptions/
+│   ├── __init__.py
+│   ├── database_manager_exception.py   – Base exception
+│   └── database_manager_exceptions.py  – Concrete exception types
+└── test/
+    ├── README.md
+    ├── test_database_manager.py
+    └── test_build_database_manager.py
+```
 
-## Public API (intended external use)
+---
+
+### Initialisation Sequence
+
+`DatabaseManager` and `SecretManager` have a mutual dependency.  
+Use the following two-phase initialisation:
+
+```python
+# Phase 1 – minimal bootstrap (no secret manager needed)
+await database_manager.initialize_default_connection(config)
+
+# Phase 2 – initialise SecretManager (which depends on DatabaseManager)
+secret_manager.initialize(database_manager, crypto_util, keys)
+
+# Phase 3 – complete DatabaseManager setup
+await database_manager.initialize(secret_manager)
+```
+
+---
+
+## Public API
+
+### Data Classes
+
+#### `DatabaseConnection`
+
+Represents one entry in the `databases` SurrealDB collection.
+
+| Field                 | Type                    | Notes                                              |
+|-----------------------|-------------------------|----------------------------------------------------|
+| `id`                  | `str \| None`           | Record id (normalised from SurrealDB `RecordID`).  |
+| `name`                | `str \| None`           | Unique human-readable name.                        |
+| `description`         | `str \| None`           | Optional description.                              |
+| `database_type`       | `DatabaseProviderType \| None` | e.g. `DatabaseProviderType.SURREALDB_REMOTE`. Accepts a string on construction (auto-converted). |
+| `secret`              | `str \| None`           | ID of the associated `Secret` record.              |
+| `raw_secret`          | `dict[str, Any] \| None`| **Transient.** Raw credentials for `add_connection`. Never stored. |
+| `parameters` | `dict[str, Any] \| None` | Non-secret parameters (endpoint, namespace, etc.). |
+
+Methods: `to_dict()`, `to_json()`, `from_dict()`, `from_json()`.
+
 
 ### Interfaces
 
-- `IDatabaseManager`
-  - **Role**: Interface for managing multiple `IDatabaseProvider` instances.
-  - Main methods:
-    - `DEFAULT_DATABASE_NAME() -> str`
-      - Returns the default database name (`"default"`).
-    - `async add_provider(options: DatabaseProviderOptions, overwrite: bool = False) -> bool`
-      - Creates and initializes a provider based on `DatabaseProviderOptions`
-        (or a subclass), and registers it under the specified `database_name`.
-      - If a provider with the same name already exists, whether it is overwritten
-        or not is controlled by the `overwrite` flag.
-    - `get_provider(database_name: str) -> IDatabaseProvider | None`
-      - Returns the provider corresponding to the specified `database_name`
-        (or `None` if it does not exist).
-    - `get_default_database_provider() -> IDatabaseProvider | None`
-      - Returns the provider corresponding to the default database name
-        (or `None` if it does not exist).
-    - `async remove_provider(database_name: str) -> bool`
-      - Closes the provider for the given `database_name` and removes it from the registry.
+#### `IDatabaseManager`
+
+| Method | Async | Description |
+|--------|-------|-------------|
+| `DEFAULT_DATABASE_NAME() -> str` | – | Returns `"default"`. |
+| `COLLECTION_NAME() -> str` | – | Returns `"databases"`. |
+| `initialize_default_connection(config)` | ✓ | Phase-1 init: connect to default DB, create placeholder entry, define unique index. |
+| `initialize(secret_manager)` | ✓ | Phase-3 init: register SecretManager. |
+| `add_connection(connection_configurations)` | ✓ | Create a `DatabaseConnection` entry; handles raw_secret → Secret creation. |
+| `update_connection(database_connection)` | ✓ | Merge-update a `DatabaseConnection`; replaces cached provider if needed. |
+| `get_connection(id)` | ✓ | Fetch a `DatabaseConnection` by id (returns `None` if not found). |
+| `get_connection_by_name(name)` | ✓ | Fetch a `DatabaseConnection` by name (returns `None` if not found). |
+| `delete_connection(id)` | ✓ | Delete a `DatabaseConnection`; removes cached provider. |
+| `get_provider(id)` | ✓ | Return or lazily create the `IDatabaseProvider` for a connection id. |
+| `get_default_provider()` | – | Return the default `IDatabaseProvider` synchronously. |
+
+---
 
 ### Implementation
 
-- `DatabaseManager`
-  - **Role**: Implementation of `IDatabaseManager` that creates and keeps
-    `IDatabaseProvider` instances according to `DatabaseType`.
-  - At the moment, when `DatabaseType.SURREALDB_REMOTE` is specified,
-    it creates `SurrealDbRemoteProvider` and initializes it with `RemoteSurrealDbOptions`.
-  - Main behaviors:
-    - `add_provider`
-      - Handles new registration, overwrite, and unsupported types
-        (raises `DatabaseProviderOptionsException` for unsupported options).
-    - `get_provider`
-      - Returns the corresponding provider from the internal dictionary.
-    - `get_default_database_provider`
-      - Returns the provider bound to the default database name.
-    - `remove_provider`
-      - Calls `close()` on the provider and then removes it from the registry.
-      - If the removed provider is the default provider, it also clears
-        the default reference.
+#### `DatabaseManager`
+
+- Maintains an internal `dict[str, IDatabaseProvider]` keyed by `DatabaseConnection.id`.
+- The default provider is keyed under `"default"` (= `DEFAULT_DATABASE_NAME()`).
+- Providers for non-default connections are created lazily on the first `get_provider(id)` call.
+- On `add_connection` with `raw_secret`, the raw credentials are automatically encrypted and
+  stored as a `Secret` via `ISecretManager` before the `DatabaseConnection` is persisted.
+- `_add_provider` and `_remove_provider` are internal helpers; `add_provider` is **not** part
+  of the public interface.
+
+---
+
+### Exceptions
+
+| Exception | Raised When |
+|-----------|-------------|
+| `DatabaseManagerNotInitializedException` | `initialize()` (phase 3) has not been called and a method that requires `ISecretManager` is invoked. |
+| `DatabaseManagerConnectionNotFoundException` | No `DatabaseConnection` record / provider found for the given id or name. |
+| `DatabaseManagerSecretNotFoundException` | The `Secret` referenced by a `DatabaseConnection` does not exist. |
+| `DatabaseManagerInvalidOperationException` | Attempt to update/delete the `default` connection; `raw_secret` in update; both `raw_secret` and `secret` in one request. |
+| `DatabaseManagerConfigurationException` | Unsupported `database_type`. |
+| `DatabaseManagerProviderInitializationException` | Provider creation or connection setup failed. |
+| `DatabaseManagerProviderCloseException` | Closing an existing provider failed. |
+
+---
 
 ## Dependencies & Libraries
 
-- **gafs.dynamicaiagent.utils.databaseprovider**
-  - `IDatabaseProvider`
-  - `DatabaseProviderOptions`
-  - `DatabaseType`
-  - `SurrealDbRemoteProvider`
-  - `RemoteSurrealDbOptions`
-  - Exception types such as `DatabaseProviderOptionsException`
-- **Python standard library**
-  - `logging`
-  - `typing`
-  - `abc`
+| Dependency | Website | License |
+|------------|---------|---------|
+| `surrealdb` | https://github.com/surrealdb/surrealdb.py | Apache-2.0 |
 
-`databasemanager` itself does not contain any database connection logic.  
-It is intentionally designed as a **thin layer that manages the lifecycle and routing of providers**.
+Internal dependencies from within this project:
+
+- `gafs.dynamicaiagent.utils.databaseprovider` — `IDatabaseProvider`, `DatabaseProviderOptions`, `DatabaseType`, `SurrealDbRemoteProvider`, `RemoteSurrealDbOptions`
+- `gafs.dynamicaiagent.common.secretmanager` — `ISecretManager`, `Secret`
+
+---
 
 ## Testing
 
-- Full test (source version):
+```bash
+# From the Python/ directory
 
-  ```bash
-  cd Python
-  pytest gafs/dynamicaiagent/common/databasemanager/test/test_database_manager.py -v
-  ```
+# Source tests
+pytest gafs/dynamicaiagent/common/databasemanager/test/test_database_manager.py -v
 
-  - Uses `IDatabaseProvider` test doubles (dummy providers) to verify the behavior of
-    `add_provider`, `get_provider`, `get_default_database_provider`, and `remove_provider`.
+# Compiled (Nuitka) tests
+python gafs/dynamicaiagent/common/databasemanager/build_nuitka.py
+pytest gafs/dynamicaiagent/common/databasemanager/test/test_build_database_manager.py -v
+```
 
-- Tests for the module built with Nuitka:
+Unit tests use `DummyProvider` and `DummySecretManager` test doubles so that no real
+database connection is required. Integration tests (marked `skipif`) connect to a real
+SurrealDB instance using `test/secret_test_config_default_database_configurations.json`.
 
-  ```bash
-  cd Python
-  python gafs/dynamicaiagent/common/databasemanager/build_nuitka.py
-  pytest gafs/dynamicaiagent/common/databasemanager/test/test_build_database_manager.py -v
-  ```
+See `Documents/CodingRules/NuitkaBuildRules.md` for compiled module test conventions.
 
-  - Prioritizes loading the compiled module placed under
-    `build/<arch>/gafs/dynamicaiagent/common/` and reuses the existing test cases
-    to validate its behavior.
-  - For details such as how `gafs.dynamicaiagent.common.__path__` is adjusted,
-    see `Documents/CodingRules/NuitkaBuildRules.md`.

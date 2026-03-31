@@ -6,6 +6,7 @@ from .exceptions.
 """
 from __future__ import annotations
 
+from .database_provider_type import DatabaseProviderType
 from .i_database_provider import (
     IDatabaseProvider,
     DatabaseProviderStatus,
@@ -32,6 +33,7 @@ __all__ = [
     "DatabaseProviderStatus",
     "DatabaseProviderOptions",
     "DatabaseType",
+    "DatabaseProviderType",
     "SurrealDbRemoteProvider",
     "RemoteSurrealDbOptions",
     "DatabaseProviderException",

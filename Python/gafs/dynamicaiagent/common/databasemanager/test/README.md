@@ -1,53 +1,128 @@
 ## 1. Target classes, methods, and test items
 
-### 1.1 `IDatabaseManager` / `DatabaseManager`
+### `IDatabaseManager` / `DatabaseManager`
 
-`DatabaseManager` is the concrete implementation of `IDatabaseManager`. It manages multiple
-database providers keyed by `database_name` and tracks a single default provider.
+`DatabaseManager` is the concrete implementation of `IDatabaseManager`. It manages a
+registry of `IDatabaseProvider` instances keyed by `DatabaseConnection.id` and persists
+`DatabaseConnection` configuration entries in the `databases` collection of the default
+database.
 
-#### `add_provider(options: DatabaseProviderOptions, overwrite: bool = False) -> bool`
+#### `initialize_default_connection(config: DatabaseConnection) -> None`
 
-- **Normal**:
-  - Adds a new provider when `database_name` does not exist.
-  - When `database_name` equals `IDatabaseManager.DEFAULT_DATABASE_NAME()`, the provider is
-    also set as the default.
-- **Duplicate (overwrite = False)**:
-  - When a provider with the same `database_name` already exists and `overwrite=False`,
-    the method returns `False` and does **not** replace the existing provider.
-- **Duplicate (overwrite = True)**:
-  - When a provider with the same `database_name` already exists and `overwrite=True`,
-    the existing provider is closed and replaced by a new one, and the method returns `True`.
-- **Unsupported type**:
-  - When `options.database_type` is not supported, `DatabaseProviderOptionsException` is raised.
+- Builds `DatabaseProviderOptions` from `config.parameters` merged with `config.raw_secret`.
+- Creates and registers the default `IDatabaseProvider`.
+- Upserts a placeholder record (`id: "default"`, `name: "default"`) in the `databases`
+  collection (idempotent).
+- Defines a unique index on the `name` field of the `databases` collection.
 
-#### `get_provider(database_name: str) -> IDatabaseProvider | None`
+#### `initialize(secret_manager: ISecretManager) -> None`
 
-- Returns the provider instance when `database_name` exists.
-- Returns `None` when `database_name` does not exist.
+- Registers an `ISecretManager` to complete phase-3 initialisation.
+- All methods that depend on secrets raise `DatabaseManagerNotInitializedException` until
+  this method is called.
 
-#### `get_default_database_provider() -> IDatabaseProvider | None`
+#### `add_connection(connection_configurations: DatabaseConnection) -> DatabaseConnection`
 
-- Returns the provider whose `database_name` equals `IDatabaseManager.DEFAULT_DATABASE_NAME()`
-  when it exists.
-- Returns `None` when no provider is registered under the default name.
+- Creates a new `DatabaseConnection` entry in the `databases` collection.
+- If `raw_secret` is set, creates a `Secret` via `ISecretManager` and links it by id.
+- If both `raw_secret` and `secret` are set simultaneously, raises
+  `DatabaseManagerInvalidOperationException`.
+- If `secret` is provided but does not exist, raises `DatabaseManagerSecretNotFoundException`.
 
-#### `remove_provider(database_name: str) -> bool`
+#### `update_connection(database_connection: DatabaseConnection) -> DatabaseConnection`
 
-- **Existing provider**:
-  - Closes and removes the provider when `database_name` exists, and returns `True`.
-  - If the removed provider was the default, the default reference is cleared.
-- **Non-existing provider**:
-  - Returns `False` when `database_name` is not found and leaves the manager state unchanged.
+- Merge-updates an existing `DatabaseConnection` record.
+- Raises `DatabaseManagerInvalidOperationException` when:
+  - The target id or name is `"default"`.
+  - `raw_secret` is set (rotate credentials via `SecretManager` directly).
+  - `id` is `None`.
+- Raises `DatabaseManagerConnectionNotFoundException` if the record does not exist.
+- If a cached provider exists for the id, closes and recreates it with updated options.
 
-Implementation details (e.g. how providers are created for each `DatabaseType`) are tested
-indirectly via the above behaviors. For unit tests, concrete providers are **replaced with
-test doubles** so that database connections are not required.
+#### `get_connection(id: str) -> DatabaseConnection | None`
+
+- Returns the `DatabaseConnection` for the given id, or `None`.
+
+#### `get_connection_by_name(name: str) -> DatabaseConnection | None`
+
+- Returns the `DatabaseConnection` for the given name, or `None`.
+
+#### `delete_connection(id: str) -> None`
+
+- Raises `DatabaseManagerInvalidOperationException` if id is `"default"`.
+- Raises `DatabaseManagerConnectionNotFoundException` if the record does not exist.
+- Removes the cached provider (if any) and deletes the record from the database.
+
+#### `get_provider(id: str) -> IDatabaseProvider`
+
+- Returns the cached provider immediately if already registered.
+- Lazily creates and caches the provider from the `databases` collection if not cached.
+- Raises `DatabaseManagerNotInitializedException` for non-default ids when phase-3 init
+  has not been completed.
+- Raises `DatabaseManagerConnectionNotFoundException` if no record exists for the id.
+- Raises `DatabaseManagerSecretNotFoundException` if the required secret does not exist.
+
+#### `get_default_provider() -> IDatabaseProvider`
+
+- Returns the default `IDatabaseProvider` synchronously (no `await`).
+- Raises `DatabaseManagerConnectionNotFoundException` if phase-1 init has not been done.
+
+#### `_add_provider(options, provider_id, overwrite=False) -> IDatabaseProvider` *(internal)*
+
+- Creates and registers a new provider under `provider_id`.
+- When `overwrite=True`, closes the existing provider before replacing it.
+- Raises `DatabaseManagerConfigurationException` for unsupported `database_type`.
+
+#### `_remove_provider(provider_id) -> bool` *(internal)*
+
+- Closes and deregisters the provider for `provider_id`.
+- Returns `True` if removed, `False` if the key was not registered.
 
 ---
 
 ## 2. Test workflows
 
-All tests are implemented in `test_database_manager.py` as pytest tests (`pytest-asyncio` for async).
+All tests are in `test_database_manager.py` using `pytest` and `pytest-asyncio`.
+
+For unit tests, `IDatabaseProvider` is replaced with `DummyProvider` and `ISecretManager`
+with `DummySecretManager`, so no real database connection is required.
+
+Integration tests (marked with `@pytest.mark.skipif`) connect to a real SurrealDB instance.
+Connection details are loaded from `secret_test_config_default_database_configurations.json`.
+The tests are automatically skipped when that file is absent.
+
+### Test categories
+
+| Category | Tests |
+|----------|-------|
+| `_add_provider` (internal) | register, overwrite closes old, unsupported type raises |
+| `get_default_provider` | raises when not registered, returns registered provider |
+| `initialize` / `_check_initialized` | registers secret manager, raises before initialize |
+| `get_provider` | returns default, returns cached, raises before phase-3 init |
+| `update_connection` validation | rejects default id/name, rejects raw_secret, rejects missing id |
+| `delete_connection` validation | rejects default, raises for missing record |
+| `add_connection` validation | rejects both raw_secret + secret simultaneously |
+| `DatabaseConnection` model | raw_secret excluded from serialization, from_dict roundtrip, to_dict enum handling, to_json exclude_id |
+| Integration | real connect smoke test, default entry exists in `databases` collection after init |
+
+---
+
+## 3. Running the tests
+
+```bash
+# From the Python/ directory
+
+# Source tests
+pytest gafs/dynamicaiagent/common/databasemanager/test/test_database_manager.py -v
+
+# Compiled (Nuitka) tests
+python gafs/dynamicaiagent/common/databasemanager/build_nuitka.py
+pytest gafs/dynamicaiagent/common/databasemanager/test/test_build_database_manager.py -v
+```
+
+For details on how `gafs.dynamicaiagent.common.__path__` is adjusted when running compiled
+tests, see `Documents/CodingRules/NuitkaBuildRules.md`.
+
 Concrete providers (e.g. `SurrealDbRemoteProvider`) are monkeypatched with a simple dummy provider
 to avoid external dependencies.
 

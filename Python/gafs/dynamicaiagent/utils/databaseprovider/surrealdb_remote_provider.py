@@ -143,13 +143,23 @@ class SurrealDbRemoteProvider(IDatabaseProvider):
                 self._token = None
                 pass
         
-        # Authenticate with username and password
-        authentication_payload: dict[str, str] = {
-            "namespace": self._options.namespace,
-            "database": self._options.database,
-            "username": self._options.username,
-            "password": self._options.password
-        }
+        # Authenticate with username and password.
+        # The payload shape depends on the auth_level:
+        #   "namespace" – namespace-level user: omit the "database" key.
+        #   "database"  – database-level user (default): include both namespace and database.
+        if self._options.auth_level == "namespace":
+            authentication_payload: dict[str, str] = {
+                "namespace": self._options.namespace,
+                "username": self._options.username,
+                "password": self._options.password,
+            }
+        else:
+            authentication_payload: dict[str, str] = {
+                "namespace": self._options.namespace,
+                "database": self._options.database,
+                "username": self._options.username,
+                "password": self._options.password,
+            }
 
         try:
             self._logger.debug("Authenticating with username and password")
@@ -158,7 +168,7 @@ class SurrealDbRemoteProvider(IDatabaseProvider):
             error_text: str = str(e)
             self._status = DatabaseProviderStatus.ERROR
 
-            # Treat as "unreachable" if the rerror is dns or socket related 
+            # Treat as "unreachable" if the error is dns or socket related
             if isinstance(e, OSError) or "getaddrinfo failed" in error_text:
                 message: str = f"Cannot connect to database at {self._options.endpoint}"
                 self._logger.error(message)
@@ -181,6 +191,12 @@ class SurrealDbRemoteProvider(IDatabaseProvider):
             raise DatabaseProviderAuthenticationException(message=message, details=exception_details, cause=e)
         
         self._status = DatabaseProviderStatus.AVAILABLE
+
+        # After namespace-level auth, SurrealDB does not auto-select a database.
+        # Explicitly select the target namespace and database so queries can execute.
+        if self._options.auth_level == "namespace" and self._options.database is not None:
+            await self._database.use(self._options.namespace, self._options.database)
+
         return True
 
     @override
