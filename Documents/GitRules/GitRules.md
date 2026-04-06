@@ -72,7 +72,7 @@ The development workflow for patches follows the same basic steps as **Developme
 1. The release version format is `MAJOR.MINOR.PATCH`.
 2. For a new release, update the project version in the release pull request from `dev/{MAJOR.MINOR}/main` to `main`.
 3. For a patch release, update the project version in the release pull request from `fix/{MAJOR.MINOR.PATCH}/main` to `main`.
-4. After merging to `main`, create an annotated tag using format `v{MAJOR.MINOR.PATCH}` on the merge commit.
+4. After merging to `main`, create an annotated tag using format `{MAJOR.MINOR.PATCH}` on the merge commit.
 5. Then create `release/{MAJOR.MINOR.PATCH}` from `main` to record the exact released source state.
 
 ## 6. Integration Testing Gate

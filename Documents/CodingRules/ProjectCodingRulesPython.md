@@ -267,17 +267,25 @@ NOTE: Please reference `PEP8` for coding rules not defined above. If `PEP8` or o
 
 ## Type of Classes / Design & Coding Rules of each type of class
 
-### Data Class
+### Data Class (Model Class)
+
+"Data Class" represents all schema-based data structures used for:
+
+- Internal data processing
+- Communication between the components (internal interfaces)
+- Communication with external entities such as clients, users, databases, or external services (external interfaces)
 
 **IMPORTANT**: This project **prohibits** the use of `@dataclass` and `@dataclass_json` decorators for data classes. Custom serialization and validation logic must be implemented manually.
 
 For detailed data class implementation guidelines, see [DataClassCodingRulesPython.md](./DataClassCodingRulesPython.md).
 
 - File Name: `{document_name}.py` (snake_case)
-- Class Name: `{DocumentName}` (PascalCase)
+- Class Name: `{ComponentName}_configurations.py` (PascalCase)
+- Placement: In `models` folder of the component.
 - Required Methods:
     - `def __init__(self)`: Initialize all fields to `None` or appropriate default values. **Must not** accept parameters other than `self`.
     - `def __setattr__(self, name: str, value: Any) -> None`: Custom setter with type validation and conversion logic.
+    - `def __repr__(self) -> str`: Intarnally calling `self.to_json()` will be sufficient.
     - `def to_dict(self, recursive: bool = False, ...) -> dict[str, Any]`: Convert to dictionary. The `recursive` parameter is **mandatory**.
     - `def to_json(self, ...) -> str`: Convert to JSON string.
     - `@classmethod def from_dict(cls, data: dict[str, Any]) -> {DocumentName}`: Create instance from dictionary.
@@ -287,36 +295,8 @@ For detailed data class implementation guidelines, see [DataClassCodingRulesPyth
     - `__lt__(self, other)`: If the entity classes are comparable
     - `def is_same_version_as(self, other)`
     - `def is_valid(self)`: If validation is required
-    - Note that methods for CRUD operations are expected to be defined in the repository class.
 
-
-### Option Class
-
-- File Name: `{component_name}_options.py` (snake_case)
-- Class Name: `{ComponentName}Options` (PascalCase)
-- Decorator Policy:
-    - `@dataclass` from `dataclasses` is allowed **only** for simple internal configuration containers.
-    - `@dataclass_json` from `dataclasses_json` is **prohibited**.
-- Serialization / Deserialization:
-    - Do not use automatic JSON-to-object conversion decorators.
-    - If options are loaded from external inputs (file, API, environment variables, or user input), implement explicit validation logic (for example, a `from_dict()` method) and reject invalid or unknown fields.
-    - If data integrity is important, validate input data before creating the option object.
-- Methods:
-    - If the option class is expected to be persisted to a database or file as a domain entity, follow the **Data Class** rules in full (manual serialization/deserialization and custom validation logic; no `@dataclass`).
-
-
-### Repository Class
-
-Repository Class is a type of class included in a component and is responsible for data operations—especially for database operations, but file operations, memory operations, or other types of data operations will be implemented as Repository Class.
-
-- File Name: `{document_name}_repository.py` (snake_case) - e.g., `model_catalogue_repository.py` for AI Model Catalogue.
-- Class Name: `{DocumentName}Repository` (PascalCase)
-- Initializer:
-    - Implement `def initialize(logger: Logger, provider: DatabaseProvider)` as the initializer.
-    - This method should be called after creating an instance with `__init__`.
-    - Store logger and provider as instance variables for later use.
-    - This method should be async if I/O operations (including database connections) are required.
-
+- Placement: Place the model classes or data classes in `models` folder in the component.
 
 ### Interface (Abstract Base Class) of Component Classes
 
@@ -324,13 +304,17 @@ Component Class is the main class of the component and contains component operat
 
 - File Name: `i_{component_name}.py` (snake_case) - e.g., `i_edge_ai_component.py` for Edge AI Component.
 - Class Name: `I{ComponentName}` (PascalCase)
-
+- Placement:
+    - Basic: In the root folder of the component.
+    - When you need to create multiple implementations: You can adopt an appropriate folder structure for the component.
 
 ### Implementations of Component Classes
 
 - File Name (snake_case):
     - `{component_name}.py` if only one implementation is expected.
     - `{service_name}.py` if multiple implementations are expected - e.g., `win_ml.py` for WinML implementation of Edge AI Component.
+- Placement
+    - In the root folder of the component.
 - Initializer:
     - Implement `def initialize(logger: Logger, options: {ComponentName}Options)` as the initializer. The initializer can be implemented as an *async* method if a database request or internal request is required, or if the initialization operation is expected to take more than 1 second.
     - This method should be called after creating an instance with `__init__`.
@@ -343,13 +327,14 @@ Component Class is the main class of the component and contains component operat
 
 - File Name: `{component_name}_exception.py` (snake_case) - e.g., `edge_ai_exception.py` for Edge AI Component.
 - Class Name: `{ComponentName}Exception` (PascalCase)
+- Placement: In `exceptions` folder of the component
 - Constructor:
     - Extend the `ApplicationException` base exception class of the application.
 
 
 #### Exception Classes
 
-Create exception classes that extend your base exception class of your component for potential exceptions.
+Create exception classes that extend your base exception class of your component for potential exceptions and place them all in the `exceptions` folder.
 
 
 ##### When to Implement Exception Classes and Throw Exceptions
