@@ -36,6 +36,7 @@ from .model_catalogue_search_criteria import (
     TagsSearchCriteria,
     VectorSearchCriteria,
 )
+from .vector_data_type import VectorDataType
 
 __all__ = [
     "AiConnectionParameters",
@@ -74,5 +75,6 @@ __all__ = [
     "TextCompletionOutput",
     "TextCompletionPayload",
     "TextMessagePart",
+    "VectorDataType",
     "VectorSearchCriteria",
 ]
