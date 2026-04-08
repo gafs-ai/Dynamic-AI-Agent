@@ -67,15 +67,14 @@ async def initialize_default_connection(config: DatabaseConnection) -> bool
 
 #### returns
 
-| type | value | description |
-|------|-------|-------------|
+| type   | value  | description                            |
+| ------ | ------ | -------------------------------------- |
 | `bool` | `True` | Successfully connected and initialized |
 
 #### raises
 
-| exception | condition |
-|-----------|-----------|
-| `DatabaseManagerConfigurationException` | `config` is invalid |
+| exception                                | condition                                     |
+| ---------------------------------------- | --------------------------------------------- |
 | `DatabaseManagerInitializationException` | Connection establishment or index setup fails |
 
 ---
