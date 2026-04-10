@@ -10,4 +10,4 @@ inherits: [DatabaseManagerException]
 | name | type | value |
 |------|------|-------|
 | `ERROR_NAME()` | `str` | `"DatabaseManagerOperationException"` |
-| `DEFAULT_MESSAGE()` | `str` | `"A database operation related to DatabaseConnection failed."` |
+| `DEFAULT_MESSAGE()` | `str` | `"A database operation failed."` |

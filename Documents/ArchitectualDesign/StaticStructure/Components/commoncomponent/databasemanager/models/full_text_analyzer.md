@@ -18,14 +18,23 @@ related_classes:
 
 ## attributes
 
-| name | type | required | description |
-|------|------|----------|-------------|
-| `id` | `str` | no | Record ID |
-| `name` | `str` | yes | Name of the analyzer |
-| `function` | `list[FunctionDefinition]` | no | User-defined function definitions |
-| `tokenizer` | `list[TokenizerDefinition]` | no | Tokenizer definitions |
-| `filters` | `list[FilterDefinition]` | no | Filter definitions |
-| `comment` | `str \| None` | no | Optional comment |
+| name        | type                        | required | description                       |
+| ----------- | --------------------------- | -------- | --------------------------------- |
+| `id`        | `str`                       | no       | Record ID                         |
+| `name`      | `str`                       | yes      | Name of the analyzer              |
+| `function`  | `list[FunctionDefinition]`  | no       | User-defined function definitions |
+| `tokenizer` | `list[TokenizerDefinition]` | no       | Tokenizer definitions             |
+| `filters`   | `list[FilterDefinition]`    | no       | Filter definitions                |
+| `comment`   | `str \| None`               | no       | Optional comment                  |
+
+## indexes
+
+| field  | index_type       | analyzer      | notes     |
+| ------ | ---------------- | ------------- | --------- |
+| `id`   | auto             | —             | automatic |
+| `name` | standard, unique | —             |           |
+| `name` | FULL TEXT        | default ngram |           |
+
 
 ## methods
 

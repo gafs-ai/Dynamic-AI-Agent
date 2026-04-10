@@ -14,31 +14,30 @@ collection: DatabaseConnections
 
 ## attributes
 
-| name | type | required | persisted | transient | description |
-|------|------|----------|-----------|-----------|-------------|
-| `id` | `str` | no | yes | no | Record ID. Normalized from SurrealDB `RecordID` — table prefix stripped (e.g. `"table:abc"` → `"abc"`). |
-| `name` | `str` | yes | yes | no | Unique human-readable name for the connection. |
-| `description` | `str` | no | yes | no | Optional description. |
-| `database_type` | `DatabaseProviderType` | yes | yes | no | Database provider type. Accepts both enum instance and its string representation (auto-converted). |
-| `secret` | `str` | no | yes | no | ID of the associated `Secret` record containing credentials. Normalized from SurrealDB `RecordID`. |
-| `raw_secret` | `dict` | no | no | yes | Raw credential dict. Used only during initial config loading or internal connection management. Never written to the database. Always excluded from responses. |
-| `parameters` | `dict` | no | yes | no | Non-secret connection parameters (e.g. endpoint, namespace, database name). |
+| name            | type                   | required | persisted | transient | description                                                                                                                                                    |
+| --------------- | ---------------------- | -------- | --------- | --------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `id`            | `str`                  | no       | yes       | no        | Record ID. Normalized from SurrealDB `RecordID` — table prefix stripped (e.g. `"table:abc"` → `"abc"`).                                                        |
+| `name`          | `str`                  | yes      | yes       | no        | Unique human-readable name for the connection.                                                                                                                 |
+| `description`   | `str`                  | no       | yes       | no        | Optional description.                                                                                                                                          |
+| `database_type` | `DatabaseProviderType` | yes      | yes       | no        | Database provider type. Accepts both enum instance and its string representation (auto-converted).                                                             |
+| `secret`        | `str`                  | no       | yes       | no        | ID of the associated `Secret` record containing credentials. Normalized from SurrealDB `RecordID`.                                                             |
+| `raw_secret`    | `dict`                 | no       | no        | yes       | Raw credential dict. Used only during initial config loading or internal connection management. Never written to the database. Always excluded from responses. |
+| `parameters`    | `dict`                 | no       | yes       | no        | Non-secret connection parameters (e.g. endpoint, namespace, database name).                                                                                    |
 
 ## indexes
 
-| field | index_type | analyzer | notes |
-|-------|------------|----------|-------|
-| `id` | auto | — | automatic |
-| `name` | FULL TEXT | default ngram | |
-| `description` | FULL TEXT | default English | |
-| `description_vector` | HNSW | — | vector similarity search |
-| `tags` | standard | — | string list |
+| field  | index_type       | analyzer        | notes    |
+| ------ | ---------------- | --------------- | -------- |
+| `id`   | auto             | —               | automatic |
+| `name` | standard, unique | —               |          |
+| `name` | FULL TEXT        | default ngram   |          |
+| `description` | FULL TEXT | default English |         |
 
 ## constraints
 
 1. `raw_secret` is never written to the database under any circumstances.
 2. `raw_secret` is excluded from all values returned to callers.
-3. The `default` entry has `id = "default"` and `name = "default"` and is created automatically during Phase-1 initialization of `DatabaseManager`.
+3. The `default` entry has `id = "default"` and `name = "default"` and is created automatically during initialization of `DatabaseManager`. External callers are not allowed to update or delete `default` entry.
 
 ## config_file_schema
 

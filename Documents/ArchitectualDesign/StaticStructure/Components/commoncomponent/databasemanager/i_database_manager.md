@@ -9,7 +9,6 @@ dependencies:
   - ISecretManager
   - FullTextAnalyzer
 exceptions_used:
-  - DatabaseManagerConfigurationException
   - DatabaseManagerInitializationException
   - DatabaseManagerNotInitializedException
   - DatabaseManagerInvalidDatabaseConnectionEntryException
@@ -27,7 +26,8 @@ exceptions_used:
 ## responsibilities
 
 - Provider registry: create, cache, and dispose `IDatabaseProvider` instances
-- Connection catalogue: persist `DatabaseConnection` entries in the `DatabaseConnections` collection
+- Connection catalogue: persist and manage `DatabaseConnection` entries in the `DatabaseConnections` collection
+- Analyzer catalogue: persist and manage `FullTextAnalyzer` entries in the `FullTextAnalyzers` collection
 
 ## initialization_sequence
 
@@ -85,28 +85,28 @@ async def initialize_default_connection(config: DatabaseConnection) -> bool
 async def initialize(secret_manager: ISecretManager) -> bool
 ```
 
-| property | value |
-|----------|-------|
-| group | initialization |
-| phase | 3 |
+| property    | value                                                                                                                                      |
+| ----------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| group       | initialization                                                                                                                             |
+| phase       | 3                                                                                                                                          |
 | description | Register `ISecretManager` and complete full component setup. Must be called after Phase-1 and after `ISecretManager` is fully initialized. |
 
 #### parameters
 
-| name | type | required | description |
-|------|------|----------|-------------|
-| `secret_manager` | `ISecretManager` | yes | Already-initialized SecretManager instance |
+| name             | type             | required | description                                |
+| ---------------- | ---------------- | -------- | ------------------------------------------ |
+| `secret_manager` | `ISecretManager` | yes      | Already-initialized SecretManager instance |
 
 #### returns
 
-| type | value | description |
-|------|-------|-------------|
+| type   | value  | description              |
+| ------ | ------ | ------------------------ |
 | `bool` | `True` | Successfully initialized |
 
 #### raises
 
-| exception | condition |
-|-----------|-----------|
+| exception                                | condition                    |
+| ---------------------------------------- | ---------------------------- |
 | `DatabaseManagerInitializationException` | Initialization process fails |
 
 ---
@@ -117,33 +117,33 @@ async def initialize(secret_manager: ISecretManager) -> bool
 async def create_connection(connection_configurations: DatabaseConnection) -> DatabaseConnection
 ```
 
-| property | value |
-|----------|-------|
-| group | connection_catalogue |
-| requires_phase | 3 |
-| description | Create a new `DatabaseConnection` entry in the `DatabaseConnections` collection. |
+| property       | value                                                                            |
+| -------------- | -------------------------------------------------------------------------------- |
+| group          | connection_catalogue                                                             |
+| requires_phase | 3                                                                                |
+| description    | Create a new `DatabaseConnection` entry in the `DatabaseConnections` collection. |
 
 #### parameters
 
-| name | type | required | description |
-|------|------|----------|-------------|
-| `connection_configurations` | `DatabaseConnection` | yes | Connection data to store. Set either `secret` or `raw_secret`, but not both. |
+| name                        | type                 | required | description                                                                  |
+| --------------------------- | -------------------- | -------- | ---------------------------------------------------------------------------- |
+| `connection_configurations` | `DatabaseConnection` | yes      | Connection data to store. Set either `secret` or `raw_secret`, but not both. |
 
 #### returns
 
-| type | description |
-|------|-------------|
+| type                 | description                                                        |
+| -------------------- | ------------------------------------------------------------------ |
 | `DatabaseConnection` | Persisted entry. `raw_secret` is excluded from the returned value. |
 
 #### raises
 
-| exception | condition |
-|-----------|-----------|
-| `DatabaseManagerNotInitializedException` | DatabaseManager is not fully initialized |
+| exception                                                | condition                                                      |
+| -------------------------------------------------------- | -------------------------------------------------------------- |
+| `DatabaseManagerNotInitializedException`                 | DatabaseManager is not fully initialized                       |
 | `DatabaseManagerInvalidDatabaseConnectionEntryException` | Entry is invalid (e.g. both `secret` and `raw_secret` are set) |
-| `DatabaseManagerConflictingConnectionException` | Specified `id` conflicts with an existing entry |
-| `DatabaseManagerSecretNotFoundException` | `secret` id does not reference an existing secret |
-| `DatabaseManagerOperationException` | Database query or connection failure |
+| `DatabaseManagerConflictingConnectionException`          | Specified `id` conflicts with an existing entry                |
+| `DatabaseManagerSecretNotFoundException`                 | `secret` id does not reference an existing secret              |
+| `DatabaseManagerOperationException`                      | Database query or connection failure                           |
 
 ---
 
@@ -167,26 +167,26 @@ async def update_connection(database_connection: DatabaseConnection) -> Database
 
 #### returns
 
-| type | description |
-|------|-------------|
+| type                 | description                               |
+| -------------------- | ----------------------------------------- |
 | `DatabaseConnection` | Updated entry as returned by the database |
 
 #### raises
 
-| exception | condition |
-|-----------|-----------|
-| `DatabaseManagerNotInitializedException` | DatabaseManager is not fully initialized |
+| exception                                                | condition                                                     |
+| -------------------------------------------------------- | ------------------------------------------------------------- |
+| `DatabaseManagerNotInitializedException`                 | DatabaseManager is not fully initialized                      |
 | `DatabaseManagerInvalidDatabaseConnectionEntryException` | Entry is invalid (e.g. `raw_secret` is set, or `id` is empty) |
-| `DatabaseManagerInvalidOperationException` | Target is the `default` connection |
-| `DatabaseManagerConnectionNotFoundException` | No record exists for the given `id` |
-| `DatabaseManagerSecretNotFoundException` | `secret` id does not reference an existing secret |
-| `DatabaseManagerOperationException` | Database query or connection failure |
+| `DatabaseManagerInvalidOperationException`               | Target is the `default` connection                            |
+| `DatabaseManagerConnectionNotFoundException`             | No record exists for the given `id`                           |
+| `DatabaseManagerSecretNotFoundException`                 | `secret` id does not reference an existing secret             |
+| `DatabaseManagerOperationException`                      | Database query or connection failure                          |
 
 #### rules
 
 1. Updates to the `default` connection (by `id` or `name`) are rejected.
 2. If a provider for the same `id` is already cached, it is closed and replaced with a newly created provider using the updated configuration.
-3. If the provider is not cached, only the `DatabaseConnection` entry is updated.
+3. If the provider is not in use (not cached), only the `DatabaseConnection` entry is updated.
 4. Even if re-establishing the connection fails after update, the entry is still updated.
 5. If the provider close operation fails during replacement, log at WARNING level and do not raise an exception.
 
@@ -219,44 +219,86 @@ async def get_connection(id: str) -> DatabaseConnection | None
 
 #### raises
 
-| exception | condition |
-|-----------|-----------|
+| exception                                | condition                                |
+| ---------------------------------------- | ---------------------------------------- |
 | `DatabaseManagerNotInitializedException` | DatabaseManager is not fully initialized |
-| `DatabaseManagerOperationException` | Database query failure |
+| `DatabaseManagerOperationException`      | Database query failure                   |
+
+#### rules
+
+1. This method simply returns the `DatabaseConnection` entry if exists, but does not create `IDatabaseProvider` instance from the entry.
 
 ---
 
-### get_connection_by_name
+### get_all_connections
 
 ```python
-async def get_connection_by_name(name: str) -> DatabaseConnection | None
+async def get_all_connections() -> list[DatabaseConnection]
 ```
 
-| property | value |
-|----------|-------|
-| group | connection_catalogue |
-| requires_phase | 3 |
-| description | Retrieve a `DatabaseConnection` entry by name. |
-
-#### parameters
-
-| name | type | required | description |
-|------|------|----------|-------------|
-| `name` | `str` | yes | Unique connection name to search for |
+| property       | value                                      |
+| -------------- | ------------------------------------------ |
+| group          | connection_catalogue                       |
+| requires_phase | 3                                          |
+| description    | Retrieve all `DatabaseConnection` entries. |
 
 #### returns
 
-| type | condition | description |
-|------|-----------|-------------|
-| `DatabaseConnection` | found | Matching entry |
-| `None` | not found | No matching record |
+| type                       | description                |
+| -------------------------- | -------------------------- |
+| `list[DatabaseConnection]` | All entries (can be empty) |
 
 #### raises
 
-| exception | condition |
-|-----------|-----------|
+| exception                                | condition                                |
+| ---------------------------------------- | ---------------------------------------- |
 | `DatabaseManagerNotInitializedException` | DatabaseManager is not fully initialized |
-| `DatabaseManagerOperationException` | Database query failure |
+| `DatabaseManagerOperationException`      | Database query failure                   |
+
+#### note
+
+- Since the number of `DatabaseConnection` entries is expected to be limited, performance impact is not a concern at this stage. Paging can be added in a future release.
+
+---
+
+### get_connections_by_name
+
+```python
+async def get_connections_by_name(name: str, ambiguous: bool = False) -> list[DatabaseConnection]
+```
+
+| property       | value                                            |
+| -------------- | ------------------------------------------------ |
+| group          | connection_catalogue                             |
+| requires_phase | 3                                                |
+| description    | Retrieve `DatabaseConnection` entries by name. |
+
+#### parameters
+
+| name        | type   | required | description                                                                                                                                   |
+| ----------- | ------ | -------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| `name`      | `str`  | yes      | Connection name to search for                                                                                                                 |
+| `ambiguous` | `bool` | no       | If `True`, search for entries that contain the given string. If `False`, search for an entry whose name exactly matches the given string. |
+
+#### returns
+
+| type                       | description                     |
+| -------------------------- | ------------------------------- |
+| `list[DatabaseConnection]` | Matching entries (can be empty) |
+
+
+#### raises
+
+| exception                                | condition                                |
+| ---------------------------------------- | ---------------------------------------- |
+| `DatabaseManagerNotInitializedException` | DatabaseManager is not fully initialized |
+| `DatabaseManagerOperationException`      | Database query failure                   |
+
+#### rules
+
+- If `ambiguous = True`, search for entries whose name contains the given string.
+- If `ambiguous = False`, search for entries whose name exactly matches the given string.
+- Return an empty list if no entry is found.
 
 ---
 
@@ -280,12 +322,12 @@ async def delete_connection(id: str) -> None
 
 #### raises
 
-| exception | condition |
-|-----------|-----------|
-| `DatabaseManagerNotInitializedException` | DatabaseManager is not fully initialized |
-| `DatabaseManagerInvalidOperationException` | `id` is `"default"` |
-| `DatabaseManagerConnectionNotFoundException` | No record exists for the given `id` |
-| `DatabaseManagerOperationException` | Database query failure |
+| exception                                    | condition                                |
+| -------------------------------------------- | ---------------------------------------- |
+| `DatabaseManagerNotInitializedException`     | DatabaseManager is not fully initialized |
+| `DatabaseManagerInvalidOperationException`   | `id` is `"default"`                      |
+| `DatabaseManagerConnectionNotFoundException` | No record exists for the given `id`      |
+| `DatabaseManagerOperationException`          | Database query failure                   |
 
 #### rules
 
@@ -330,8 +372,7 @@ async def create_analyzer(analyzer: FullTextAnalyzer) -> FullTextAnalyzer
 
 #### rules
 
-1. `DEFINE ANALYZER` statement must include the `IF NOT EXISTS` clause.
-2. The `FullTextAnalyzer` collection entry and the actual database analyzer must remain consistent.
+1. The `FullTextAnalyzer` collection entry and the actual database analyzer must remain consistent.
 
 ---
 
@@ -411,30 +452,63 @@ async def get_analyzer(id: str) -> FullTextAnalyzer | None
 
 ---
 
-### get_analyzer_by_name
+### get_all_analyzers
+
 
 ```python
-async def get_analyzer_by_name(name: str) -> FullTextAnalyzer | None
+async def get_all_analyzers() -> list[FullTextAnalyzer]
 ```
 
-| property | value |
-|----------|-------|
-| group | full_text_analyzer |
-| requires_phase | 1 |
-| description | Retrieve a `FullTextAnalyzer` entry by name. |
-
-#### parameters
-
-| name | type | required | description |
-|------|------|----------|-------------|
-| `name` | `str` | yes | Analyzer name to search for |
+| property       | value                                    |
+| -------------- | ---------------------------------------- |
+| group          | full_text_analyzer                       |
+| requires_phase | 1                                        |
+| description    | Retrieve all `FullTextAnalyzer` entries. |
 
 #### returns
 
-| type | condition | description |
-|------|-----------|-------------|
-| `FullTextAnalyzer` | found | Matching entry |
-| `None` | not found | No matching record |
+| type                     | description                    |
+| ------------------------ | ------------------------------ |
+| `list[FullTextAnalyzer]` | All `FullTextAnalyzer` entries |
+
+#### raises
+
+| exception                                   | condition                                |
+| ------------------------------------------- | ---------------------------------------- |
+| `DatabaseManagerNotInitializedException`    | DatabaseManager is not fully initialized |
+| `DatabaseManagerAnalyzerOperationException` | Query failure                            |
+
+#### note
+
+- Since the number of `FullTextAnalyzer` entries is expected to be limited, performance impact is not a concern at this stage. Paging can be added in a future release.
+
+---
+
+### get_analyzers_by_name
+
+```python
+async def get_analyzers_by_name(name: str, ambiguous: bool = False) -> list[FullTextAnalyzer]
+```
+
+| property       | value                                        |
+| -------------- | -------------------------------------------- |
+| group          | full_text_analyzer                           |
+| requires_phase | 1                                            |
+| description    | Retrieve `FullTextAnalyzer` entries by name. |
+
+#### parameters
+
+| name        | type   | required | description                                                                                                                                |
+| ----------- | ------ | -------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| `name`      | `str`  | yes      | Analyzer name to search for                                                                                                                |
+| `ambiguous` | `bool` | no       | If `True`, search for entries that contain the given string. If `False`, search for an entry whose name exactly matches the given string. |
+
+#### returns
+
+| type                     | description      |
+| ------------------------ | ---------------- |
+| `list[FullTextAnalyzer]` | Matching entries |
+
 
 #### raises
 
@@ -442,6 +516,12 @@ async def get_analyzer_by_name(name: str) -> FullTextAnalyzer | None
 |-----------|-----------|
 | `DatabaseManagerNotInitializedException` | DatabaseManager is not fully initialized |
 | `DatabaseManagerAnalyzerOperationException` | Query failure |
+
+#### rules
+
+- If `ambiguous = True`, search for entries whose name contains the given string.
+- If `ambiguous = False`, search for entries whose name exactly matches the given string.
+- Return an empty list if no entry is found.
 
 ---
 
@@ -471,6 +551,10 @@ async def delete_analyzer(id: str) -> None
 | `DatabaseManagerAnalyzerNotFoundException` | Target does not exist |
 | `DatabaseManagerAnalyzerOperationException` | Query failure |
 
+#### rules
+
+1. The `FullTextAnalyzer` collection entry and the actual database analyzer must remain consistent.
+
 ---
 
 ### get_provider
@@ -487,9 +571,9 @@ async def get_provider(id: str) -> IDatabaseProvider
 
 #### parameters
 
-| name | type | required | description |
-|------|------|----------|-------------|
-| `id` | `str` | yes | Record id of the `DatabaseConnection` |
+| name | type  | required | description                           |
+| ---- | ----- | -------- | ------------------------------------- |
+| `id` | `str` | yes      | Record id of the `DatabaseConnection` |
 
 #### returns
 
@@ -499,12 +583,12 @@ async def get_provider(id: str) -> IDatabaseProvider
 
 #### raises
 
-| exception | condition |
-|-----------|-----------|
-| `DatabaseManagerNotInitializedException` | Phase-3 not completed (for non-default providers) |
-| `DatabaseManagerConnectionNotFoundException` | No connection record for the given `id` |
-| `DatabaseManagerSecretNotFoundException` | Required secret does not exist |
-| `DatabaseManagerOperationException` | Query failure |
+| exception                                    | condition                                         |
+| -------------------------------------------- | ------------------------------------------------- |
+| `DatabaseManagerNotInitializedException`     | Phase-3 not completed (for non-default providers) |
+| `DatabaseManagerConnectionNotFoundException` | No connection record for the given `id`           |
+| `DatabaseManagerSecretNotFoundException`     | Required secret does not exist                    |
+| `DatabaseManagerOperationException`          | Query failure                                     |
 
 #### rules
 

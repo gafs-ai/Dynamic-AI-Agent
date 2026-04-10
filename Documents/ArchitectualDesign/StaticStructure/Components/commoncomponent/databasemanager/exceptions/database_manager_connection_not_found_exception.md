@@ -14,4 +14,4 @@ inherits: [DatabaseManagerException]
 
 ## usage
 
-- Raised when no matching `DatabaseConnection` entry is found when looking up by id.
+- Raised when no matching `DatabaseConnection` entry is found. This includes lookups by id and deletion attempts where no record exists.

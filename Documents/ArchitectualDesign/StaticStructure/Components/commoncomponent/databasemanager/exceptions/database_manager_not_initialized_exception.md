@@ -10,4 +10,4 @@ inherits: [DatabaseManagerException]
 | name | type | value |
 |------|------|-------|
 | `ERROR_NAME()` | `str` | `"DatabaseManagerNotInitializedException"` |
-| `DEFAULT_MESSAGE()` | `str` | `"DatabaseManager is not fully initialized. Call initialize() with a SecretManager first."` |
+| `DEFAULT_MESSAGE()` | `str` | `"DatabaseManager is not initialized. Ensure the required initialization phase has been completed."` |
