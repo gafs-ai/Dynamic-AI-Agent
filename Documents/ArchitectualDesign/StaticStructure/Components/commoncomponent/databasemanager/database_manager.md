@@ -82,8 +82,10 @@ async def create_connection(connection_configurations: DatabaseConnection) -> Da
 4. If `connection_configurations` contains a `secret` id, check if the secret exists by calling the `SecretManager` method.
    - If the secret does not exist: raise `DatabaseManagerSecretNotFoundException`
 5. Else if `connection_configurations` contains `raw_secret`:
-   1. Save `raw_secret` as `secret` by calling the `SecretManager` method and get the id of the created secret.
-   2. Update `connection_configurations` (write `secret` value and remove `raw_secret`).
+   1. Create a `Secret` object with `raw_secret` set to `connection_configurations.raw_secret`.
+   2. Call `create_secret(secret)` on `ISecretManager` and get the returned `Secret` entry.
+      - On failure: raise `DatabaseManagerOperationException`.
+   3. Set `connection_configurations.secret` to the returned `Secret.id` and clear `connection_configurations.raw_secret`.
 6. Save `connection_configurations` entry to the collection.
 7. Return the created `DatabaseConnection` entry.
 
@@ -398,7 +400,7 @@ async def get_provider(id: str) -> IDatabaseProvider
 	- On other kinds of failures: raise `DatabaseManagerOperationException`
 5. Get the referenced secret by calling `get_secret` in `ISecretManager`.
 	- If the secret is not found: raise `DatabaseManagerSecretNotFoundException`
-6. Merge `parameters` from `DatabaseConnection` with the secret values. Secret values take precedence on duplicate keys.
+6. Merge `parameters` from `DatabaseConnection` with the values in `secret.raw_secret`. Values from `raw_secret` take precedence on duplicate keys.
 7. Create an `IDatabaseProvider` instance from the merged parameters.
 8. Cache the created `IDatabaseProvider` instance.
 9. Return the `IDatabaseProvider` instance.
