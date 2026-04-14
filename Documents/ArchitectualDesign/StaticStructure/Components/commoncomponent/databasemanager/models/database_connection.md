@@ -4,6 +4,8 @@ kind: data_class
 roles: [stored_model, request, response]
 module: gafs.dynamicaiagent.common.databasemanager
 collection: DatabaseConnections
+dependencies:
+  - DatabaseProviderType
 ---
 
 ## constants
