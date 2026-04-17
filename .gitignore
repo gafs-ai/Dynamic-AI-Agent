@@ -180,5 +180,8 @@ cython_debug/
 .cursorignore
 .cursorindexingignore
 
+# Obsidia
+.obsidian/
+
 # Secret test configuration files (must not be committed)
 secret_test_*.json
