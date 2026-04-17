@@ -185,3 +185,6 @@ cython_debug/
 
 # Secret test configuration files (must not be committed)
 secret_test_*.json
+
+# Archive
+archive/
