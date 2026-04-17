@@ -278,10 +278,10 @@ async def get_secret(secret_id: str, decrypt: bool = False) -> Secret | None
 
 #### raises
 
-| exception | condition |
-|-----------|-----------|
-| `SecretManagerNotInitializedException` | SecretManager is not initialized |
-| `SecretManagerCryptoException` | Decryption of a secret value fails (only when `decrypt=True`) |
+| exception                              | condition                                                     |
+| -------------------------------------- | ------------------------------------------------------------- |
+| `SecretManagerNotInitializedException` | SecretManager is not initialized                              |
+| `SecretManagerCryptoException`         | Decryption of a secret value fails (only when `decrypt=True`) |
 | `SecretManagerOperationException` | Database operation fails |
 ---
 

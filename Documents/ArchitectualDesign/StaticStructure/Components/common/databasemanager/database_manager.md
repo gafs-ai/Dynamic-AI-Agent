@@ -350,7 +350,6 @@ async def get_analyzers_by_name(name: str, ambiguous: bool = False) -> list[Full
 	- On failure: raise `DatabaseManagerAnalyzerOperationException` (Do not raise an exception if no entry is found.)
 3. Return the found `FullTextAnalyzer` entries as a list.
 
-
 ---
 
 ### delete_analyzer

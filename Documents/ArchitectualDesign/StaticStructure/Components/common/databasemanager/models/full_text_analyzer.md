@@ -40,6 +40,64 @@ related_classes:
 
 ---
 
+### DEFAULT_ANALYZER
+
+```python
+@staticmethod
+def DEFAULT_ANALYZER() -> FullTextAnalyzer
+```
+
+| property | value |
+|----------|-------|
+| description | Return a `FullTextAnalyzer` instance for the default n-gram analyzer. |
+
+#### returns
+
+```json
+{
+  "id": "default_ngram_analyzer",
+  "name": "default_ngram_analyzer",
+  "tokenizers": [
+    { "tokenizer": "blank" },
+    { "tokenizer": "punct" }
+  ],
+  "filters": [
+    { "filter": "ngram", "parameters": { "min": 3, "max": 5 } }
+  ]
+}
+```
+
+---
+
+### DEFAULT_ENGLISH_ANALYZER
+
+```python
+@staticmethod
+def DEFAULT_ENGLISH_ANALYZER() -> FullTextAnalyzer
+```
+
+| property | value |
+|----------|-------|
+| description | Return a `FullTextAnalyzer` instance for the default English snowball analyzer. |
+
+#### returns
+
+```json
+{
+  "id": "default_english_analyzer",
+  "name": "default_english_analyzer",
+  "tokenizers": [
+    { "tokenizer": "blank" },
+    { "tokenizer": "punct" }
+  ],
+  "filters": [
+    { "filter": "snowball", "parameters": { "language": "english" } }
+  ]
+}
+```
+
+---
+
 ### validate_and_normalize
 
 ```python

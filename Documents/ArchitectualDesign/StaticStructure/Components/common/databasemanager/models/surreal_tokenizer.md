@@ -1,4 +1,3 @@
-
 ---
 class: SurrealTokenizer
 kind: enum
