@@ -6,6 +6,7 @@ inherits: [ABC]
 dependencies:
   - IDatabaseManager
   - IModelCatalogueService
+  - ICloudAiComponent
   - AiRequest
   - AiResponse
   - DeploymentSelectionOptions
@@ -33,7 +34,7 @@ exceptions_used:
 async def initialize(
     database_manager: IDatabaseManager,
     model_catalogue_service: IModelCatalogueService | None = None,
-    cloud_ai_component: Any | None = None,
+    cloud_ai_component: ICloudAiComponent | None = None,
 ) -> bool
 ```
 

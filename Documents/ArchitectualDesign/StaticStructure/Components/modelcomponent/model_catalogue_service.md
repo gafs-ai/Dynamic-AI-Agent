@@ -3,6 +3,28 @@ class: ModelCatalogueService
 kind: class
 module: gafs.dynamicaiagent.modelcomponent
 implements: [IModelCatalogueService]
+dependencies:
+  - IDatabaseManager
+  - IDatabaseProvider
+  - ModelCatalogueEntry
+  - ModelCatalogueSearchResultEntry
+  - ModelDeployment
+  - ModelComponentConfigurations
+  - ModelCatalogueSearchCriteria
+  - ModelDeploymentSearchCriteria
+exceptions_used:
+  - ModelComponentInitializationException
+  - ModelComponentNotInitializedException
+  - InvalidModelCatalogueEntryException
+  - ConflictingModelCatalogueEntryException
+  - ModelCatalogueEntryNotFoundException
+  - ModelDeploymentNotFoundException
+  - InvalidModelCatalogueSearchCriteriaException
+  - InvalidModelDeploymentException
+  - ConflictingModelDeploymentException
+  - InvalidModelDeploymentSearchCriteriaException
+  - ModelComponentOperationException
+  - FullTextAnalyzerNotExistException
 ---
 
 ## fields

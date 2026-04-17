@@ -3,6 +3,17 @@ class: ModelService
 kind: class
 module: gafs.dynamicaiagent.modelcomponent
 implements: [IModelService]
+dependencies:
+  - IDatabaseManager
+  - IModelCatalogueService
+  - ICloudAiComponent
+  - AiConnectionParameters
+  - AiRequest
+  - AiResponse
+  - AiDeploymentType
+  - ModelCatalogueEntry
+  - ModelDeployment
+  - DeploymentSelectionOptions
 ---
 
 ## fields

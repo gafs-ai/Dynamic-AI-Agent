@@ -12,7 +12,7 @@ implements: [IModelComponent]
 | `_logger` | `logging.Logger` | Logger instance |
 | `_model_catalogue_service` | `IModelCatalogueService` | Injected on construction |
 | `_model_service` | `IModelService` | Injected on construction |
-| `_cloud_ai_component` | `Any \| None` | Injected on construction; forwarded to `IModelService.initialize` |
+| `_cloud_ai_component` | `ICloudAiComponent \| None` | Injected on construction; forwarded to `IModelService.initialize` |
 | `_database_manager` | `IDatabaseManager \| None` | Set on `initialize` |
 | `_configurations` | `ModelComponentConfigurations \| None` | Cached after `initialize`; refreshed by `get_configurations` / `update_configurations` |
 | `_is_rebuilding_vector_index` | `bool` | Flag set to `True` while the vector index is being rebuilt; blocks vector search |
