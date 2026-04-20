@@ -2,9 +2,22 @@
 class: ConfigurationLoader
 kind: class
 module: gafs.dynamicaiagent.common.configurationloader
-implements: [IConfigurationLoader]
-status: work_in_progress
+implements:
+  - IConfigurationLoader
 ---
+
+## constructor
+
+```python
+def __init__(
+    program_folder: Path | None = None,
+    app_data_folder: Path | None = None,
+    user_home_folder: Path | None = None,
+) -> None
+```
+
+All parameters are optional and intended for testing purposes (folder-path injection).
+In production, construct without arguments.
 
 ## methods
 
@@ -22,10 +35,10 @@ def _get_application_data_folder() -> Path
 
 #### implementation notes
 
-1. Get the folder path using the `platformdirs` library.
-   - Windows: `%APPDATA%\<AppName>`
-   - Linux: `~/.config/<AppName>`
-   - macOS: `~/Library/Application Support/<AppName>`
+1. Get the folder path using `platformdirs.user_data_dir(APPLICATION_NAME, APPLICATION_AUTHOR, roaming=True)`.
+   - Windows: `%APPDATA%\GAFS\Dynamic-AI-Agent`
+   - Linux: `~/.local/share/Dynamic-AI-Agent`
+   - macOS: `~/Library/Application Support/Dynamic-AI-Agent`
 
 ---
 
@@ -41,10 +54,11 @@ def _get_user_home_folder() -> Path
 
 #### implementation notes
 
-1. Get the folder path using the `platformdirs` library.
-   - Windows: `~\`
-   - Linux: `~/`
-   - macOS: `~/`
+1. Get the user home directory using `Path.home()` from the Python standard library.
+   (`platformdirs` does not provide a user-home API; `Path.home()` is the correct approach.)
+   - Windows: `C:\Users\<username>`
+   - Linux: `/home/<username>`
+   - macOS: `/Users/<username>`
 
 ---
 
