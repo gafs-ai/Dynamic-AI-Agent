@@ -142,7 +142,7 @@ def get_alter_analyzer_statement() -> str
 
 | property | value |
 |----------|-------|
-| description | Build the `ALTER ANALYZER` SurrealQL statement for this analyzer. |
+| description | Build the `DEFINE ANALYZER OVERWRITE` SurrealQL statement for this analyzer. Uses `OVERWRITE` because `ALTER ANALYZER` is not supported in surrealdb Python client v1.0.x (embedded engine). The effect is equivalent. |
 
 ---
 

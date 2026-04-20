@@ -386,7 +386,7 @@ async def update_analyzer(analyzer: FullTextAnalyzer) -> FullTextAnalyzer
 |----------|-------|
 | group | full_text_analyzer |
 | requires_phase | 1 |
-| description | Update an existing `FullTextAnalyzer` entry and alter the analyzer on the default database. |
+| description | Update an existing `FullTextAnalyzer` entry and redefine the analyzer on the default database. |
 
 #### parameters
 
@@ -411,7 +411,8 @@ async def update_analyzer(analyzer: FullTextAnalyzer) -> FullTextAnalyzer
 
 #### rules
 
-1. Use `ALTER ANALYZER` query to update the actual analyzer (do not use `DEFINE ANALYZER OVERWRITE`).
+1. Use `DEFINE ANALYZER OVERWRITE` query to update the actual analyzer.
+   NOTE: `ALTER ANALYZER` is not supported in surrealdb Python client v1.0.x (embedded engine). `DEFINE ANALYZER OVERWRITE` achieves the same effect and is compatible with all supported versions.
 2. The `FullTextAnalyzer` collection entry and the actual database analyzer must remain consistent.
 3. If the alteration affects analyzer functionality (tokenizers or filters changed), rebuild all indexes that reference the updated analyzer.
 4. Editing only `comment` or `name` does not affect analyzer functionality and does not require an index rebuild.
