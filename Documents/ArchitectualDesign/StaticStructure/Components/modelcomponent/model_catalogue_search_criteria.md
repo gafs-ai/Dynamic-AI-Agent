@@ -59,16 +59,16 @@ module: gafs.dynamicaiagent.modelcomponent.models
 
 ### attributes
 
-| name | type | required | default | description |
-|------|------|----------|---------|-------------|
-| `name` | `str \| None` | no | `None` | Filter by exact name |
-| `type` | `AiOperationType \| None` | no | `None` | Filter by operation type |
-| `status` | `list[ModelStatus]` | no | `[ACTIVE]` | Filter by lifecycle status (OR) |
-| `keywords` | `list[str] \| None` | no | `None` | Full-text search keywords |
-| `deployment_types` | `list[AiDeploymentType] \| None` | no | `None` | Filter by deployment type (OR) |
-| `vector_search` | `VectorSearchCriteria \| None` | no | `None` | Vector similarity search parameters |
-| `tags` | `TagsSearchCriteria \| None` | no | `None` | Tag filter |
-| `limit` | `int` | no | `100` | Maximum number of results |
+| name               | type                             | required | default    | description                         |
+| ------------------ | -------------------------------- | -------- | ---------- | ----------------------------------- |
+| `name`             | `str \| None`                    | no       | `None`     | Filter by exact name                |
+| `type`             | `AiOperationType \| None`        | no       | `None`     | Filter by operation type            |
+| `status`           | `list[ModelStatus]`              | no       | `[ACTIVE]` | Filter by lifecycle status (OR)     |
+| `keywords`         | `list[str] \| None`              | no       | `None`     | Full-text search keywords           |
+| `deployment_types` | `list[AiDeploymentType] \| None` | no       | `None`     | Filter by deployment type (OR)      |
+| `vector_search`    | `VectorSearchCriteria \| None`   | no       | `None`     | Vector similarity search parameters |
+| `tags`             | `TagsSearchCriteria \| None`     | no       | `None`     | Tag filter                          |
+| `limit`            | `int`                            | no       | `100`      | Maximum number of results           |
 
 ### notes
 

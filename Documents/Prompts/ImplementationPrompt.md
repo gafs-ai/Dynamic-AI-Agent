@@ -1,11 +1,10 @@
-実装ドキュメント（`Documents/ArchitectualDesign/{ComponentDocumentFolder}`内）に従って、ModelComponentを実装してください。なお、CloudAiComponent実装時に、ModelComponentの一部を実装しました。
+実装ドキュメント（`Documents/ArchitectualDesign/StaticStructure/Components/{ComponentDocumentFolder}`内）に従って、{ComponentName}を実装してください。
 
 ---
 
 作業指示
 
 1. 実装は、実装ドキュメントに従って実装を行います。
-   - `archive`フォルダ内の以前の実装を参考にすることができます。（ただし、違いがある場合には、実装ドキュメントの記載内容を優先します）
    - 実装ドキュメントの指示に従うことができない場合、または実装中に不適切な設計が判明した場合には、実装ドキュメントを修正することを許可します。ただし、実装された内容とドキュメントは完全に整合していなければなりません。
 2. 実装にあたっては、プロジェクトルール（`Documents/CodingRules`内）を基本ルールとして尊重します。ただし、実装ドキュメントとの齟齬がある場合には、実装ドキュメントの記載内容を優先し、また実装内容に対して適用することが不適当な内容に従う必要はありません。
 3. 実装後、実装ドキュメントの仕様を満たしていることを確認するためのテストを行います。

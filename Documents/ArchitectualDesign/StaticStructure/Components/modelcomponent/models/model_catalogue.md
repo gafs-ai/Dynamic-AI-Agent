@@ -19,13 +19,13 @@ kind: enum
 module: gafs.dynamicaiagent.modelcomponent.models
 ```
 
-| name | value | description |
-|------|-------|-------------|
-| `RECOMMENDED` | `"recommended"` | Preferred model for new usage |
-| `ACTIVE` | `"active"` | Available for use |
-| `MAINTENANCE` | `"maintenance"` | Temporarily limited availability |
-| `DEPRECATED` | `"deprecated"` | Scheduled for retirement; avoid new usage |
-| `RETIRED` | `"retired"` | No longer available |
+| name          | value           | description                               |
+| ------------- | --------------- | ----------------------------------------- |
+| `RECOMMENDED` | `"recommended"` | Preferred model for new usage             |
+| `ACTIVE`      | `"active"`      | Available for use                         |
+| `MAINTENANCE` | `"maintenance"` | Temporarily limited availability          |
+| `DEPRECATED`  | `"deprecated"`  | Scheduled for retirement; avoid new usage |
+| `RETIRED`     | `"retired"`     | No longer available                       |
 
 ---
 
