@@ -728,10 +728,6 @@ class ToolCatalogueService(IToolCatalogueService):
         # Validate required fields
         if not version.tool_id:
             raise InvalidToolVersionEntryException("ToolVersionEntry tool_id must not be empty.")
-        if version.code is None and version.code_link is None:
-            raise InvalidToolVersionEntryException(
-                "ToolVersionEntry must have either code or code_link."
-            )
 
         # Verify tool_id references a valid ToolCatalogueEntry
         await self.get_tool_catalogue_entry(version.tool_id)

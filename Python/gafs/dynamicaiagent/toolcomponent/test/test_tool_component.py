@@ -106,7 +106,7 @@ def _make_version(tool_id: str, sandbox_id: str, suffix: str) -> ToolVersionEntr
     # Add a required input parameter definition
     param = InputParameterDefinition()
     param.name = "value"
-    param.type = FieldAttributeType.STRING
+    param.type = FieldAttributeType.STR
     param.required = True
     entry.input_parameters = [param]
     return entry
@@ -331,6 +331,7 @@ class TestToolComponentInvoke:
                 )
                 assert result["result"] == "hello_invoke"
             finally:
+                await env.docker_service._exit()
                 await env.component._tool_catalogue_service.delete_tool_version_entry(version.id)
                 await env.component.delete_tool_catalogue_entry(catalogue.id)
                 await env.component.delete_sandbox_catalogue_entry(sandbox.id)
@@ -382,6 +383,7 @@ class TestToolComponentInvoke:
                     # 'value' is required; not passing it should raise
                     await env.component.invoke(catalogue.id, version.id, {})
             finally:
+                await env.docker_service._exit()
                 await env.component._tool_catalogue_service.delete_tool_version_entry(version.id)
                 await env.component.delete_tool_catalogue_entry(catalogue.id)
                 await env.component.delete_sandbox_catalogue_entry(sandbox.id)

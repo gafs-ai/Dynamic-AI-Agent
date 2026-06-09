@@ -175,6 +175,7 @@ class DockerSandboxService(IDockerSandboxService):
                 "volumes": volumes,
                 "command": "sleep infinity",
                 "detach": True,
+                "labels": {"gafs.toolcomponent": "true"},
             }
 
             # Apply sandbox run_options if set
@@ -197,6 +198,19 @@ class DockerSandboxService(IDockerSandboxService):
                 client.containers.run(sandbox_entry.id, **run_kwargs)
                 self._logger.debug("Started container '%s'.", container_name)
             except Exception as exc:
+                # If the container already exists (name conflict), reuse it if running
+                exc_msg = str(exc)
+                if "409" in exc_msg or "already in use" in exc_msg.lower():
+                    try:
+                        existing = client.containers.get(container_name)
+                        if existing.status == "running":
+                            self._logger.debug("Reusing existing container '%s'.", container_name)
+                            return container_name
+                        existing.start()
+                        self._logger.debug("Restarted existing container '%s'.", container_name)
+                        return container_name
+                    except Exception:
+                        pass
                 raise ToolComponentOperationException(
                     f"Failed to start container '{container_name}'.",
                     cause=exc,
@@ -353,6 +367,32 @@ class DockerSandboxService(IDockerSandboxService):
                 "Failed to fetch active Docker sandbox entries during initialization.",
                 cause=exc,
             ) from exc
+
+        # Cleanup orphaned standby containers from previous runs
+        # (containers labeled 'gafs.toolcomponent=true' whose sandbox is no longer active)
+        active_sandbox_ids = {s.id for s in docker_sandboxes if s.id}
+        try:
+            def _cleanup_orphans() -> None:
+                client = self._get_docker_client()
+                orphans = client.containers.list(
+                    filters={"label": "gafs.toolcomponent=true"}
+                )
+                for container in orphans:
+                    name = container.name
+                    parts = name.rsplit("_", 1)
+                    if len(parts) == 2 and parts[1].isdigit() and parts[0] not in active_sandbox_ids:
+                        try:
+                            container.stop(timeout=5)
+                            container.remove()
+                            self._logger.debug("Removed orphaned container '%s'.", name)
+                        except Exception as exc:  # noqa: BLE001
+                            self._logger.warning(
+                                "Failed to remove orphaned container '%s': %s", name, exc
+                            )
+            loop = asyncio.get_event_loop()
+            await loop.run_in_executor(None, _cleanup_orphans)
+        except Exception as exc:  # noqa: BLE001
+            self._logger.warning("Orphaned container cleanup failed: %s", exc)
 
         # For each sandbox: build image and replenish pool
         for sandbox_entry in docker_sandboxes:

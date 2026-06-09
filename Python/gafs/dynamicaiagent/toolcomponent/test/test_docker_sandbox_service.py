@@ -195,6 +195,7 @@ class TestDockerSandboxExecution:
                 assert result["message"] == "hello"
                 assert result["count"] == 42
             finally:
+                await docker_svc._exit()
                 await cat_svc.delete_tool_version_entry(version.id)
                 await cat_svc.delete_tool_catalogue_entry(catalogue.id)
                 await sbx_svc.delete_catalogue_entry(sandbox.id)
@@ -240,6 +241,7 @@ class TestDockerSandboxExecution:
                 assert result["output_file"] == "output_file.txt"
                 assert result["content_length"] == len("hello world")
             finally:
+                await docker_svc._exit()
                 await cat_svc.delete_tool_version_entry(version.id)
                 await cat_svc.delete_tool_catalogue_entry(catalogue.id)
                 await sbx_svc.delete_catalogue_entry(sandbox.id)
@@ -269,6 +271,7 @@ class TestDockerSandboxExecution:
                 assert result["tmp_written"] == "scratch_data"
                 assert result["tmp_read_back"] == "scratch_data"
             finally:
+                await docker_svc._exit()
                 await cat_svc.delete_tool_version_entry(version.id)
                 await cat_svc.delete_tool_catalogue_entry(catalogue.id)
                 await sbx_svc.delete_catalogue_entry(sandbox.id)
@@ -314,6 +317,7 @@ class TestDockerSandboxExecution:
                 assert result["source"] == "db"
                 assert result["msg"] == "from_db"
             finally:
+                await docker_svc._exit()
                 await cat_svc.delete_tool_version_entry(version.id)
                 await cat_svc.delete_tool_catalogue_entry(catalogue.id)
                 await sbx_svc.delete_catalogue_entry(sandbox.id)
@@ -366,6 +370,7 @@ class TestDockerSandboxExecution:
                 assert result["source"] == "file"
                 assert result["value"] == "from_file"
             finally:
+                await docker_svc._exit()
                 await cat_svc.delete_tool_version_entry(version.id)
                 await cat_svc.delete_tool_catalogue_entry(catalogue.id)
                 await sbx_svc.delete_catalogue_entry(sandbox.id)
