@@ -258,8 +258,8 @@ async def create_tool_version_entry(version: ToolVersionEntry) -> ToolVersionEnt
 #### rules
 
 - `version.tool_id` must reference a valid `ToolCatalogueEntry`. (raise `ToolCatalogueEntryNotFoundException` on failure)
-- Either `version.code` or `version.code_link` must be set.
-- After the DB record is persisted and the version `id` is assigned, synchronise code to the filesystem:
+- Neither `version.code` nor `version.code_link` is required. When both are `None`, no filesystem sync is performed and the code is assumed to be externally managed and already present on disk at `{app_data_folder}/tools/codes/{version.tool_id}_{version.id}/main.py`.
+- After the DB record is persisted and the version `id` is assigned, synchronise code to the filesystem if applicable:
   - If `version.code` is set: write its contents to `{app_data_folder}/tools/codes/{version.tool_id}_{version.id}/main.py` (create directory as needed).
   - If `version.code_link` is set: clone/download the repository to `{app_data_folder}/tools/codes/{version.tool_id}_{version.id}/`.
   - Filesystem failure must raise `ToolComponentOperationException` and roll back the DB record within the same transaction.

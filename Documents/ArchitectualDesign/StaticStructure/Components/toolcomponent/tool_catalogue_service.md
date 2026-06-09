@@ -251,7 +251,8 @@ async def create_tool_version_entry(version: ToolVersionEntry) -> ToolVersionEnt
 #### implementation notes
 
 1. If `_database_provider` is `None`: raise `ToolComponentNotInitializedException`.
-2. Validate `version` (non-empty `tool_id`; either `code` or `code_link` must be set). On failure: raise `InvalidToolVersionEntryException`.
+2. Validate `version` (non-empty `tool_id`). On failure: raise `InvalidToolVersionEntryException`.
+   - Note: neither `code` nor `code_link` is required. If both are `None`, no filesystem sync is performed (code is assumed to be externally managed and already present on disk).
 3. Verify that `version.tool_id` references a valid `ToolCatalogueEntry` via `get_tool_catalogue_entry(version.tool_id)`.
    - If not found: raise `ToolCatalogueEntryNotFoundException`.
 4. Build and execute:

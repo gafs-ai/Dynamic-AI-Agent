@@ -74,11 +74,16 @@ async def _create_container(
    - `--name {container_name}`
    - `-v {app_data_folder}/tools/codes:/app/codes:ro`
    - `-v {host_data_dir}:/app/data:rw`
+   - Label: `gafs.toolcomponent=true` (used for orphan container cleanup on next `initialize`)
    - Any additional options from `sandbox_entry.run_options`
    - Image: `sandbox_entry.id`
    - Command: `sleep infinity`
    - Detached mode (`-d`)
-   - On failure: raise `ToolComponentOperationException`.
+   - On failure:
+     - If the error is a name-conflict (HTTP 409 / container name already in use): check whether the container already exists.
+       - If the container is running: log a debug message and return the existing container name (reuse).
+       - If the container is stopped: start it and return its name.
+     - Otherwise: raise `ToolComponentOperationException`.
 5. Return the container name.
 
 ---
@@ -169,13 +174,17 @@ async def initialize(
    - Call `_sandbox_catalogue_service.search_catalogue_entries(criteria)`.
    - Filter results to `SandboxCatalogueDockerEntry` instances only.
    - On failure: raise `ToolComponentInitializationException`.
-6. For each `SandboxCatalogueDockerEntry`:
+6. Cleanup orphaned standby containers from previous runs (best-effort; errors are logged and do not abort initialization):
+   - Build the set of active sandbox IDs from the results of step 5.
+   - List all running Docker containers that have the label `gafs.toolcomponent=true`.
+   - For each such container whose name follows the pattern `{sandbox_id}_{n}` and whose `sandbox_id` is **not** in the active sandbox ID set: stop and remove the container.
+7. For each `SandboxCatalogueDockerEntry`:
    1. Call `_create_image(sandbox_entry)` to build or verify the Docker image.
       - On failure: log the error and skip this entry (best-effort; do not abort initialization).
    2. Initialise `_standby_containers[sandbox_entry.id] = []` and `_container_counts[sandbox_entry.id] = 0`.
    3. Call `_replenish_standby_pool(sandbox_entry)` to create the initial standby containers.
       - Errors are logged and do not abort initialization.
-7. Return `True`.
+8. Return `True`.
 
 ---
 
